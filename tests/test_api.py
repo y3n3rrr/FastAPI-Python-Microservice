@@ -663,6 +663,77 @@ class ApiTests(unittest.TestCase):
         delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
         self.assertEqual(delete_brand.status_code, 204)
 
+    def test_user_payment_method_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/payment-methods")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Payment",
+                "surname": "Tester",
+                "email": "payment-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "payment-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        create_response = self.client.post(
+            "/payment-methods",
+            json={
+                "user_id": user_id,
+                "provider": "stripe",
+                "provider_customer_id": "cus_test_001",
+                "provider_payment_method_id": "pm_test_001",
+                "card_brand": "visa",
+                "card_last4": "4242",
+                "exp_month": 12,
+                "exp_year": 2030,
+                "cardholder_name": "Payment Tester",
+                "is_default": True,
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(create_response.status_code, 201)
+        payment_method_id = create_response.json()["id"]
+
+        list_user_response = self.client.get(f"/payment-methods/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_response.status_code, 200)
+        self.assertTrue(any(item["id"] == payment_method_id for item in list_user_response.json()))
+
+        get_response = self.client.get(f"/payment-methods/{payment_method_id}", headers=auth_headers)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["provider_payment_method_id"], "pm_test_001")
+
+        update_response = self.client.put(
+            f"/payment-methods/{payment_method_id}",
+            json={
+                "is_default": False,
+                "cardholder_name": "Updated Payment Tester",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertFalse(update_response.json()["is_default"])
+        self.assertEqual(update_response.json()["cardholder_name"], "Updated Payment Tester")
+
+        delete_response = self.client.delete(f"/payment-methods/{payment_method_id}", headers=auth_headers)
+        self.assertEqual(delete_response.status_code, 204)
+
 
 if __name__ == "__main__":
     unittest.main()

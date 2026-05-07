@@ -38,6 +38,7 @@ from app.schemas.order import (
     OrderStatusHistoryUpdate,
     OrderUpdate,
 )
+from app.schemas.payment import UserPaymentMethodCreate, UserPaymentMethodRead, UserPaymentMethodUpdate
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 __all__ = [
@@ -79,4 +80,7 @@ __all__ = [
     "OrderStatusHistoryCreate",
     "OrderStatusHistoryRead",
     "OrderStatusHistoryUpdate",
+    "UserPaymentMethodCreate",
+    "UserPaymentMethodRead",
+    "UserPaymentMethodUpdate",
 ]

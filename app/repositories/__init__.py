@@ -8,6 +8,7 @@ from app.repositories.catalog import (
     ProductVariantRepository,
 )
 from app.repositories.order import OrderItemRepository, OrderRepository, OrderStatusHistoryRepository
+from app.repositories.payment import UserPaymentMethodRepository
 from app.repositories.user_repository import UserRepository
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "OrderRepository",
     "OrderItemRepository",
     "OrderStatusHistoryRepository",
+    "UserPaymentMethodRepository",
 ]

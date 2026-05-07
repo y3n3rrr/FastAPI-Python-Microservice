@@ -11,7 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
 from app.core.config import get_settings
-from app.entities.user import User
 
 _SETTINGS = get_settings()
 
@@ -101,7 +100,7 @@ class UserPaymentMethod(TimestampMixin, Base):
         server_default="true",
     )
 
-    user: Mapped["User"] = relationship(
+    user: Mapped[object] = relationship(
         "User",
         back_populates="payment_methods",
     )
