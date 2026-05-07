@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.entities import user  # noqa: F401
 from app.entities.catalog import brand, category, inventory, product, product_image, product_variant  # noqa: F401
+from app.entities.card import card, card_item  # noqa: F401
 
 config = context.config
 settings = get_settings()

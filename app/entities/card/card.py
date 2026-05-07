@@ -8,18 +8,18 @@ from app.db.base import Base, TimestampMixin
 from app.entities.catalog.catalog import fk_table
 
 if TYPE_CHECKING:
-    from app.entities.cart.cart_item import CartItem
+    from app.entities.card.card_item import CardItem
     from app.entities.user import User
 
 _SETTINGS = get_settings()
 _SCHEMA = None if _SETTINGS.database_url.startswith("sqlite") else _SETTINGS.database_schema
 
 
-class Cart(TimestampMixin, Base):
-    __tablename__ = "carts"
+class Card(TimestampMixin, Base):
+    __tablename__ = "cards"
     __table_args__ = (
-        Index("ix_carts_user_id", "user_id"),
-        Index("ix_carts_status", "status"),
+        Index("ix_cards_user_id", "user_id"),
+        Index("ix_cards_status", "status"),
         {"schema": _SCHEMA} if _SCHEMA else {},
     )
 
@@ -46,8 +46,8 @@ class Cart(TimestampMixin, Base):
 
     user: Mapped["User"] = relationship("User")
 
-    items: Mapped[list["CartItem"]] = relationship(
-        "CartItem",
-        back_populates="cart",
+    items: Mapped[list["CardItem"]] = relationship(
+        "CardItem",
+        back_populates="card",
         cascade="all, delete-orphan",
     )

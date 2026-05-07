@@ -319,6 +319,159 @@ class ApiTests(unittest.TestCase):
         delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
         self.assertEqual(delete_brand.status_code, 204)
 
+    def test_card_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/cards")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Card",
+                "surname": "Tester",
+                "email": "card-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "card-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        brand_create = self.client.post(
+            "/catalog/brands",
+            json={
+                "name": "Card Brand",
+                "slug": "card-brand",
+                "description": "Brand for card tests",
+                "logo_url": "https://example.com/card-brand.png",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(brand_create.status_code, 201)
+        brand_id = brand_create.json()["id"]
+
+        category_create = self.client.post(
+            "/catalog/categories",
+            json={
+                "parent_id": None,
+                "name": "Card Category",
+                "slug": "card-category",
+                "description": "Category for card tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(category_create.status_code, 201)
+        category_id = category_create.json()["id"]
+
+        product_create = self.client.post(
+            "/catalog/products",
+            json={
+                "category_id": category_id,
+                "brand_id": brand_id,
+                "name": "Card Product 1L",
+                "slug": "card-product-1l",
+                "description": "Product for card tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(product_create.status_code, 201)
+        product_id = product_create.json()["id"]
+
+        variant_create = self.client.post(
+            "/catalog/variants",
+            json={
+                "product_id": product_id,
+                "sku": "SKU-CARD-001",
+                "barcode": "8690000000101",
+                "name": "1L",
+                "color": None,
+                "size": "1L",
+                "price": "29.90",
+                "compare_at_price": "34.90",
+                "currency": "TRY",
+                "weight_kg": "1.050",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(variant_create.status_code, 201)
+        variant_id = variant_create.json()["id"]
+
+        card_create = self.client.post(
+            "/cards",
+            json={
+                "user_id": user_id,
+                "status": "active",
+                "currency": "TRY",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(card_create.status_code, 201)
+        card_id = card_create.json()["id"]
+
+        list_user_cards = self.client.get(f"/cards/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_cards.status_code, 200)
+        self.assertTrue(any(card["id"] == card_id for card in list_user_cards.json()))
+
+        card_item_create = self.client.post(
+            "/cards/items",
+            json={
+                "card_id": card_id,
+                "product_variant_id": variant_id,
+                "quantity": 3,
+                "unit_price_snapshot": "29.90",
+                "currency": "TRY",
+                "is_selected": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(card_item_create.status_code, 201)
+        card_item_id = card_item_create.json()["id"]
+
+        list_card_items = self.client.get(f"/cards/{card_id}/items", headers=auth_headers)
+        self.assertEqual(list_card_items.status_code, 200)
+        self.assertTrue(any(item["id"] == card_item_id for item in list_card_items.json()))
+
+        card_item_update = self.client.put(
+            f"/cards/items/{card_item_id}",
+            json={"quantity": 5, "is_selected": False},
+            headers=auth_headers,
+        )
+        self.assertEqual(card_item_update.status_code, 200)
+        self.assertEqual(card_item_update.json()["quantity"], 5)
+        self.assertFalse(card_item_update.json()["is_selected"])
+
+        delete_card_item = self.client.delete(f"/cards/items/{card_item_id}", headers=auth_headers)
+        self.assertEqual(delete_card_item.status_code, 204)
+
+        delete_card = self.client.delete(f"/cards/{card_id}", headers=auth_headers)
+        self.assertEqual(delete_card.status_code, 204)
+
+        delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
+        self.assertEqual(delete_variant.status_code, 204)
+
+        delete_product = self.client.delete(f"/catalog/products/{product_id}", headers=auth_headers)
+        self.assertEqual(delete_product.status_code, 204)
+
+        delete_category = self.client.delete(f"/catalog/categories/{category_id}", headers=auth_headers)
+        self.assertEqual(delete_category.status_code, 204)
+
+        delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
+        self.assertEqual(delete_brand.status_code, 204)
+
 
 if __name__ == "__main__":
     unittest.main()

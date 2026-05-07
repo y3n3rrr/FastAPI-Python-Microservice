@@ -1,4 +1,12 @@
 from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.card import (
+    CardCreate,
+    CardItemCreate,
+    CardItemRead,
+    CardItemUpdate,
+    CardRead,
+    CardUpdate,
+)
 from app.schemas.catalog import (
     BrandCreate,
     BrandRead,
@@ -27,6 +35,12 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "CardCreate",
+    "CardRead",
+    "CardUpdate",
+    "CardItemCreate",
+    "CardItemRead",
+    "CardItemUpdate",
     "BrandCreate",
     "BrandRead",
     "BrandUpdate",
