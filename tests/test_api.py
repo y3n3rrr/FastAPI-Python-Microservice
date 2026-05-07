@@ -472,6 +472,197 @@ class ApiTests(unittest.TestCase):
         delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
         self.assertEqual(delete_brand.status_code, 204)
 
+    def test_order_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/orders")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Order",
+                "surname": "Tester",
+                "email": "order-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "order-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        brand_create = self.client.post(
+            "/catalog/brands",
+            json={
+                "name": "Order Brand",
+                "slug": "order-brand",
+                "description": "Brand for order tests",
+                "logo_url": "https://example.com/order-brand.png",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(brand_create.status_code, 201)
+        brand_id = brand_create.json()["id"]
+
+        category_create = self.client.post(
+            "/catalog/categories",
+            json={
+                "parent_id": None,
+                "name": "Order Category",
+                "slug": "order-category",
+                "description": "Category for order tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(category_create.status_code, 201)
+        category_id = category_create.json()["id"]
+
+        product_create = self.client.post(
+            "/catalog/products",
+            json={
+                "category_id": category_id,
+                "brand_id": brand_id,
+                "name": "Order Product 1L",
+                "slug": "order-product-1l",
+                "description": "Product for order tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(product_create.status_code, 201)
+        product_id = product_create.json()["id"]
+
+        variant_create = self.client.post(
+            "/catalog/variants",
+            json={
+                "product_id": product_id,
+                "sku": "SKU-ORDER-001",
+                "barcode": "8690000000201",
+                "name": "1L",
+                "color": None,
+                "size": "1L",
+                "price": "49.90",
+                "compare_at_price": "54.90",
+                "currency": "TRY",
+                "weight_kg": "1.050",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(variant_create.status_code, 201)
+        variant_id = variant_create.json()["id"]
+
+        order_create = self.client.post(
+            "/orders",
+            json={
+                "user_id": user_id,
+                "status": "pending",
+                "currency": "TRY",
+                "total_amount": "99.80",
+                "note": "Order test create",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(order_create.status_code, 201)
+        order_id = order_create.json()["id"]
+
+        list_user_orders = self.client.get(f"/orders/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_orders.status_code, 200)
+        self.assertTrue(any(order["id"] == order_id for order in list_user_orders.json()))
+
+        order_item_create = self.client.post(
+            "/orders/items",
+            json={
+                "order_id": order_id,
+                "product_variant_id": variant_id,
+                "quantity": 2,
+                "unit_price_snapshot": "49.90",
+                "line_total": "99.80",
+                "currency": "TRY",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(order_item_create.status_code, 201)
+        order_item_id = order_item_create.json()["id"]
+
+        list_order_items = self.client.get(f"/orders/{order_id}/items", headers=auth_headers)
+        self.assertEqual(list_order_items.status_code, 200)
+        self.assertTrue(any(item["id"] == order_item_id for item in list_order_items.json()))
+
+        status_history_create = self.client.post(
+            "/orders/status-history",
+            json={
+                "order_id": order_id,
+                "from_status": "pending",
+                "to_status": "confirmed",
+                "changed_by_user_id": user_id,
+                "note": "Confirmed by test",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(status_history_create.status_code, 201)
+        history_id = status_history_create.json()["id"]
+
+        list_status_history = self.client.get(f"/orders/{order_id}/status-history", headers=auth_headers)
+        self.assertEqual(list_status_history.status_code, 200)
+        self.assertTrue(any(history["id"] == history_id for history in list_status_history.json()))
+
+        order_update = self.client.put(
+            f"/orders/{order_id}",
+            json={"status": "confirmed", "note": "Updated order status"},
+            headers=auth_headers,
+        )
+        self.assertEqual(order_update.status_code, 200)
+        self.assertEqual(order_update.json()["status"], "confirmed")
+
+        order_item_update = self.client.put(
+            f"/orders/items/{order_item_id}",
+            json={"quantity": 3, "line_total": "149.70"},
+            headers=auth_headers,
+        )
+        self.assertEqual(order_item_update.status_code, 200)
+        self.assertEqual(order_item_update.json()["quantity"], 3)
+
+        status_history_update = self.client.put(
+            f"/orders/status-history/{history_id}",
+            json={"note": "Update note for history"},
+            headers=auth_headers,
+        )
+        self.assertEqual(status_history_update.status_code, 200)
+        self.assertEqual(status_history_update.json()["note"], "Update note for history")
+
+        delete_status_history = self.client.delete(f"/orders/status-history/{history_id}", headers=auth_headers)
+        self.assertEqual(delete_status_history.status_code, 204)
+
+        delete_order_item = self.client.delete(f"/orders/items/{order_item_id}", headers=auth_headers)
+        self.assertEqual(delete_order_item.status_code, 204)
+
+        delete_order = self.client.delete(f"/orders/{order_id}", headers=auth_headers)
+        self.assertEqual(delete_order.status_code, 204)
+
+        delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
+        self.assertEqual(delete_variant.status_code, 204)
+
+        delete_product = self.client.delete(f"/catalog/products/{product_id}", headers=auth_headers)
+        self.assertEqual(delete_product.status_code, 204)
+
+        delete_category = self.client.delete(f"/catalog/categories/{category_id}", headers=auth_headers)
+        self.assertEqual(delete_category.status_code, 204)
+
+        delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
+        self.assertEqual(delete_brand.status_code, 204)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,6 +27,17 @@ from app.schemas.catalog import (
     ProductVariantRead,
     ProductVariantUpdate,
 )
+from app.schemas.order import (
+    OrderCreate,
+    OrderItemCreate,
+    OrderItemRead,
+    OrderItemUpdate,
+    OrderRead,
+    OrderStatusHistoryCreate,
+    OrderStatusHistoryRead,
+    OrderStatusHistoryUpdate,
+    OrderUpdate,
+)
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 __all__ = [
@@ -59,4 +70,13 @@ __all__ = [
     "ProductVariantCreate",
     "ProductVariantRead",
     "ProductVariantUpdate",
+    "OrderCreate",
+    "OrderRead",
+    "OrderUpdate",
+    "OrderItemCreate",
+    "OrderItemRead",
+    "OrderItemUpdate",
+    "OrderStatusHistoryCreate",
+    "OrderStatusHistoryRead",
+    "OrderStatusHistoryUpdate",
 ]

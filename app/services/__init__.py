@@ -7,6 +7,7 @@ from app.services.catalog import (
     ProductService,
     ProductVariantService,
 )
+from app.services.order import OrderItemService, OrderService, OrderStatusHistoryService
 from app.services.user_service import UserService
 
 __all__ = [
@@ -19,4 +20,7 @@ __all__ = [
     "ProductImageService",
     "ProductService",
     "ProductVariantService",
+    "OrderService",
+    "OrderItemService",
+    "OrderStatusHistoryService",
 ]
