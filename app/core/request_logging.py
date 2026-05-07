@@ -82,9 +82,10 @@ class ApiRequestLogWriter:
         self.settings = settings
         self.queue: queue.Queue[dict[str, object] | object] = queue.Queue(maxsize=settings.api_request_log_queue_size)
         self.thread = threading.Thread(target=self._run, name="api-request-log-writer", daemon=True)
+        schema = settings.database_schema.replace('"', '""')
         self.insert_statement = text(
-            """
-            INSERT INTO migros-store.api_request_logs (
+            f"""
+            INSERT INTO "{schema}".api_request_logs (
                 request_id,
                 user_id,
                 method,
