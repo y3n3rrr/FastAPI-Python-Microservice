@@ -11,6 +11,7 @@ from app.entities import user  # noqa: F401
 from app.entities.cart import cart, cart_item  # noqa: F401
 from app.entities.catalog import brand, category, inventory, product, product_image, product_variant  # noqa: F401
 from app.entities.order import order, order_item, order_status_history  # noqa: F401
+from app.entities.payment import user_payment_method  # noqa: F401
 
 config = context.config
 settings = get_settings()

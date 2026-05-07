@@ -13,7 +13,7 @@ from app.entities.order import (
     OrderItem,
     OrderStatusHistory,
 )
-
+from app.entities.payment import UserPaymentMethod
 __all__ = [
     "User",
     "Cart",
@@ -27,4 +27,5 @@ __all__ = [
     "Order",
     "OrderItem",
     "OrderStatusHistory",
+    "UserPaymentMethod",
 ]
