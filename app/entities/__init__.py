@@ -1,3 +1,4 @@
+from app.entities.assistant import ChatMessage, ChatSession
 from app.entities.cart import Cart, CartItem
 from app.entities.user import User
 from app.entities.catalog import (
@@ -13,9 +14,11 @@ from app.entities.order import (
     OrderItem,
     OrderStatusHistory,
 )
-from app.entities.payment import UserPaymentMethod
+from app.entities.payment import PaymentIntent, UserPaymentMethod
 __all__ = [
     "User",
+    "ChatSession",
+    "ChatMessage",
     "Cart",
     "CartItem",
     "Brand",
@@ -28,4 +31,5 @@ __all__ = [
     "OrderItem",
     "OrderStatusHistory",
     "UserPaymentMethod",
+    "PaymentIntent",
 ]

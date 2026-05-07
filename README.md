@@ -179,6 +179,14 @@ Run this after catalog seed data, because Cart seed references an existing `prod
 
 Run this after user data is available. The script creates a fallback user `id=1` when needed.
 
+### Seed Payment Intent Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_payment_intent.py
+```
+
+Run this after payment method/order migrations are applied. The script upserts user, payment method, catalog, order, and linked payment intent data.
+
 ## Running the Application
 
 ### Development Mode

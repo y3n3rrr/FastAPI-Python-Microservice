@@ -20,6 +20,14 @@ class UserPaymentMethodRepository:
     def get(self, payment_method_id: int) -> UserPaymentMethod | None:
         return self.db.get(UserPaymentMethod, payment_method_id)
 
+    def get_default_by_user(self, user_id: int) -> UserPaymentMethod | None:
+        stmt = select(UserPaymentMethod).where(
+            UserPaymentMethod.user_id == user_id,
+            UserPaymentMethod.is_default.is_(True),
+            UserPaymentMethod.is_active.is_(True),
+        )
+        return self.db.scalar(stmt)
+
     def add(self, payment_method: UserPaymentMethod) -> UserPaymentMethod:
         self.db.add(payment_method)
         return payment_method
