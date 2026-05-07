@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from click import DateTime
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,6 +32,8 @@ class UserService:
             email=payload.email,
             password_hash=hash_password(payload.password),
             is_active=payload.is_active,
+            created_at=datetime.now(),
+            updated_at=None,
         )
         self.repository.add(user)
         return self._commit_and_refresh(
@@ -39,6 +44,7 @@ class UserService:
     def update_user(self, user_id: int, payload: UserUpdate) -> User:
         user = self.get_user(user_id)
         data = payload.model_dump(exclude_unset=True)
+        user.updated_at = datetime.now()
 
         password = data.pop("password", None)
         if password is not None:
