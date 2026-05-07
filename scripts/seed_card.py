@@ -14,25 +14,21 @@ from app.entities.catalog.product_variant import ProductVariant
 from app.entities.user import User
 
 
-def _upsert_user(
-    db: Session,
-    *,
-    email: str,
-    name: str,
-    surname: str,
-    password: str,
-) -> User:
-    user = db.scalar(select(User).where(User.email == email))
-    if user is None:
-        user = User(
-            name=name,
-            surname=surname,
-            email=email,
-            password_hash=hash_password(password),
-            is_active=True,
-        )
-        db.add(user)
-        db.flush()
+def _get_or_create_user_1(db: Session) -> User:
+    user = db.get(User, 1)
+    if user is not None:
+        return user
+
+    user = User(
+        id=1,
+        name="Card",
+        surname="Seeder",
+        email="card.seed@example.com",
+        password_hash=hash_password("seedpassword"),
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
     return user
 
 
@@ -96,13 +92,7 @@ def seed_card() -> None:
     db = session_factory()
 
     try:
-        user = _upsert_user(
-            db,
-            email="card.seed@example.com",
-            name="Card",
-            surname="Seeder",
-            password="seedpassword",
-        )
+        user = _get_or_create_user_1(db)
 
         variant = db.scalar(select(ProductVariant).order_by(ProductVariant.id))
         if variant is None:

@@ -1,19 +1,30 @@
+from app.entities.card import Card, CardItem
 from app.entities.user import User
 from app.entities.catalog import (
     Brand,
     Category,
-    Product,
-    ProductVariant,
-    ProductImage,
     Inventory,
+    Product,
+    ProductImage,
+    ProductVariant,
+)
+from app.entities.order import (
+    Order,
+    OrderItem,
+    OrderStatusHistory,
 )
 
 __all__ = [
     "User",
+    "Card",
+    "CardItem",
     "Brand",
     "Category",
-    "Product",
-    "ProductVariant",
-    "ProductImage",
     "Inventory",
+    "Product",
+    "ProductImage",
+    "ProductVariant",
+    "Order",
+    "OrderItem",
+    "OrderStatusHistory",
 ]
