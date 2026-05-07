@@ -18,8 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.base import TimestampMixin
-from app.entities.catalog import fk_table
-from app.entities.catalog.catalog import SCHEMA
+from app.entities.catalog.catalog import SCHEMA, fk_table
 
 if TYPE_CHECKING:
     from app.entities.catalog.inventory import Inventory
