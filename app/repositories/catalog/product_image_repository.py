@@ -1,3 +1,5 @@
+import builtins
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,13 +10,13 @@ class ProductImageRepository:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list(self) -> list[ProductImage]:
+    def list(self) -> builtins.list[ProductImage]:
         return list(self.db.scalars(select(ProductImage).order_by(ProductImage.id)))
 
     def get(self, image_id: int) -> ProductImage | None:
         return self.db.get(ProductImage, image_id)
 
-    def list_by_product(self, product_id: int) -> list[ProductImage]:
+    def list_by_product(self, product_id: int) -> builtins.list[ProductImage]:
         stmt = select(ProductImage).where(ProductImage.product_id == product_id).order_by(ProductImage.sort_order, ProductImage.id)
         return list(self.db.scalars(stmt))
 
