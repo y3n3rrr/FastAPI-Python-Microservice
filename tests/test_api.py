@@ -319,16 +319,16 @@ class ApiTests(unittest.TestCase):
         delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
         self.assertEqual(delete_brand.status_code, 204)
 
-    def test_card_crud_flow(self) -> None:
-        unauthorized_response = self.client.get("/cards")
+    def test_cart_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/carts")
         self.assertEqual(unauthorized_response.status_code, 401)
 
         register_response = self.client.post(
             "/register",
             json={
-                "name": "Card",
+                "name": "Cart",
                 "surname": "Tester",
-                "email": "card-tester@example.com",
+                "email": "Cart-tester@example.com",
                 "password": "supersecure",
                 "is_active": True,
             },
@@ -339,7 +339,7 @@ class ApiTests(unittest.TestCase):
         login_response = self.client.post(
             "/login",
             json={
-                "email": "card-tester@example.com",
+                "email": "Cart-tester@example.com",
                 "password": "supersecure",
             },
         )
@@ -350,10 +350,10 @@ class ApiTests(unittest.TestCase):
         brand_create = self.client.post(
             "/catalog/brands",
             json={
-                "name": "Card Brand",
-                "slug": "card-brand",
-                "description": "Brand for card tests",
-                "logo_url": "https://example.com/card-brand.png",
+                "name": "Cart Brand",
+                "slug": "Cart-brand",
+                "description": "Brand for Cart tests",
+                "logo_url": "https://example.com/Cart-brand.png",
                 "is_active": True,
             },
             headers=auth_headers,
@@ -365,9 +365,9 @@ class ApiTests(unittest.TestCase):
             "/catalog/categories",
             json={
                 "parent_id": None,
-                "name": "Card Category",
-                "slug": "card-category",
-                "description": "Category for card tests",
+                "name": "Cart Category",
+                "slug": "Cart-category",
+                "description": "Category for Cart tests",
                 "is_active": True,
             },
             headers=auth_headers,
@@ -380,9 +380,9 @@ class ApiTests(unittest.TestCase):
             json={
                 "category_id": category_id,
                 "brand_id": brand_id,
-                "name": "Card Product 1L",
-                "slug": "card-product-1l",
-                "description": "Product for card tests",
+                "name": "Cart Product 1L",
+                "slug": "Cart-product-1l",
+                "description": "Product for Cart tests",
                 "is_active": True,
             },
             headers=auth_headers,
@@ -394,7 +394,7 @@ class ApiTests(unittest.TestCase):
             "/catalog/variants",
             json={
                 "product_id": product_id,
-                "sku": "SKU-CARD-001",
+                "sku": "SKU-Cart-001",
                 "barcode": "8690000000101",
                 "name": "1L",
                 "color": None,
@@ -410,8 +410,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(variant_create.status_code, 201)
         variant_id = variant_create.json()["id"]
 
-        card_create = self.client.post(
-            "/cards",
+        cart_create = self.client.post(
+            "/carts",
             json={
                 "user_id": user_id,
                 "status": "active",
@@ -419,17 +419,17 @@ class ApiTests(unittest.TestCase):
             },
             headers=auth_headers,
         )
-        self.assertEqual(card_create.status_code, 201)
-        card_id = card_create.json()["id"]
+        self.assertEqual(cart_create.status_code, 201)
+        cart_id = cart_create.json()["id"]
 
-        list_user_cards = self.client.get(f"/cards/users/{user_id}", headers=auth_headers)
-        self.assertEqual(list_user_cards.status_code, 200)
-        self.assertTrue(any(card["id"] == card_id for card in list_user_cards.json()))
+        list_user_carts = self.client.get(f"/carts/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_carts.status_code, 200)
+        self.assertTrue(any(cart["id"] == cart_id for cart in list_user_carts.json()))
 
-        card_item_create = self.client.post(
-            "/cards/items",
+        cart_item_create = self.client.post(
+            "/carts/items",
             json={
-                "card_id": card_id,
+                "cart_id": cart_id,
                 "product_variant_id": variant_id,
                 "quantity": 3,
                 "unit_price_snapshot": "29.90",
@@ -438,27 +438,27 @@ class ApiTests(unittest.TestCase):
             },
             headers=auth_headers,
         )
-        self.assertEqual(card_item_create.status_code, 201)
-        card_item_id = card_item_create.json()["id"]
+        self.assertEqual(cart_item_create.status_code, 201)
+        cart_item_id = cart_item_create.json()["id"]
 
-        list_card_items = self.client.get(f"/cards/{card_id}/items", headers=auth_headers)
-        self.assertEqual(list_card_items.status_code, 200)
-        self.assertTrue(any(item["id"] == card_item_id for item in list_card_items.json()))
+        list_cart_items = self.client.get(f"/carts/{cart_id}/items", headers=auth_headers)
+        self.assertEqual(list_cart_items.status_code, 200)
+        self.assertTrue(any(item["id"] == cart_item_id for item in list_cart_items.json()))
 
-        card_item_update = self.client.put(
-            f"/cards/items/{card_item_id}",
+        cart_item_update = self.client.put(
+            f"/carts/items/{cart_item_id}",
             json={"quantity": 5, "is_selected": False},
             headers=auth_headers,
         )
-        self.assertEqual(card_item_update.status_code, 200)
-        self.assertEqual(card_item_update.json()["quantity"], 5)
-        self.assertFalse(card_item_update.json()["is_selected"])
+        self.assertEqual(cart_item_update.status_code, 200)
+        self.assertEqual(cart_item_update.json()["quantity"], 5)
+        self.assertFalse(cart_item_update.json()["is_selected"])
 
-        delete_card_item = self.client.delete(f"/cards/items/{card_item_id}", headers=auth_headers)
-        self.assertEqual(delete_card_item.status_code, 204)
+        delete_cart_item = self.client.delete(f"/carts/items/{cart_item_id}", headers=auth_headers)
+        self.assertEqual(delete_cart_item.status_code, 204)
 
-        delete_card = self.client.delete(f"/cards/{card_id}", headers=auth_headers)
-        self.assertEqual(delete_card.status_code, 204)
+        delete_cart = self.client.delete(f"/carts/{cart_id}", headers=auth_headers)
+        self.assertEqual(delete_cart.status_code, 204)
 
         delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
         self.assertEqual(delete_variant.status_code, 204)

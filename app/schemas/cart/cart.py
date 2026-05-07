@@ -3,19 +3,19 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-class CardCreate(BaseModel):
+class CartCreate(BaseModel):
     user_id: int
     status: str = "active"
     currency: str = "USD"
 
 
-class CardUpdate(BaseModel):
+class CartUpdate(BaseModel):
     user_id: int | None = None
     status: str | None = None
     currency: str | None = None
 
 
-class CardRead(BaseModel):
+class CartRead(BaseModel):
     id: int
     user_id: int
     status: str
@@ -26,4 +26,4 @@ class CardRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-__all__ = ["CardCreate", "CardRead", "CardUpdate"]
+__all__ = ["CartCreate", "CartRead", "CartUpdate"]

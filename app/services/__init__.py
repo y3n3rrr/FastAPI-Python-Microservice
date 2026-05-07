@@ -1,4 +1,4 @@
-from app.services.card import CardItemService, CardService
+from app.services.cart import CartItemService, CartService
 from app.services.catalog import (
     BrandService,
     CategoryService,
@@ -12,8 +12,8 @@ from app.services.user_service import UserService
 
 __all__ = [
     "UserService",
-    "CardService",
-    "CardItemService",
+    "CartService",
+    "CartItemService",
     "BrandService",
     "CategoryService",
     "InventoryService",

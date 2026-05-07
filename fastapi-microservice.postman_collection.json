@@ -1,4 +1,4 @@
-﻿{
+{
     "info":  {
                  "_postman_id":  "eb741622-dc20-4219-99ca-5e69d63e8fd9",
                  "name":  "fastapi-microservice",
@@ -2402,10 +2402,10 @@
                               ]
                  },
                  {
-                     "name":  "cards",
+                     "name":  "carts",
                      "item":  [
                                   {
-                                      "name":  "List Cards",
+                                      "name":  "List carts",
                                       "request":  {
                                                       "auth":  {
                                                                    "bearer":  [
@@ -2422,12 +2422,12 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/cards",
+                                                                  "raw":  "{{baseUrl}}/carts",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
-                                                                               "cards"
+                                                                               "carts"
                                                                            ]
                                                               }
                                                   },
@@ -2436,7 +2436,7 @@
                                                    ]
                                   },
                                   {
-                                      "name":  "Create Card",
+                                      "name":  "Create Cart",
                                       "request":  {
                                                       "auth":  {
                                                                    "bearer":  [
@@ -2465,12 +2465,12 @@
                                                                                }
                                                                },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/cards",
+                                                                  "raw":  "{{baseUrl}}/carts",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
-                                                                               "cards"
+                                                                               "carts"
                                                                            ]
                                                               }
                                                   },
@@ -2482,7 +2482,7 @@
                                       "name":  "/users/{user_id}",
                                       "item":  [
                                                    {
-                                                       "name":  "List User Cards",
+                                                       "name":  "List User carts",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2499,12 +2499,12 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/users/:user_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/users/:user_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "users",
                                                                                                 ":user_id"
                                                                                             ],
@@ -2523,10 +2523,10 @@
                                                ]
                                   },
                                   {
-                                      "name":  "/{card_id}",
+                                      "name":  "/{cart_id}",
                                       "item":  [
                                                    {
-                                                       "name":  "Get Card",
+                                                       "name":  "Get Cart",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2543,17 +2543,17 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/:card_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/:cart_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
-                                                                                                ":card_id"
+                                                                                                "carts",
+                                                                                                ":cart_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_id",
+                                                                                                        "key":  "cart_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2564,7 +2564,7 @@
                                                                     ]
                                                    },
                                                    {
-                                                       "name":  "Update Card",
+                                                       "name":  "Update Cart",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2593,17 +2593,17 @@
                                                                                                 }
                                                                                 },
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/:card_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/:cart_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
-                                                                                                ":card_id"
+                                                                                                "carts",
+                                                                                                ":cart_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_id",
+                                                                                                        "key":  "cart_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2614,7 +2614,7 @@
                                                                     ]
                                                    },
                                                    {
-                                                       "name":  "Delete Card",
+                                                       "name":  "Delete Cart",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2631,17 +2631,17 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/:card_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/:cart_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
-                                                                                                ":card_id"
+                                                                                                "carts",
+                                                                                                ":cart_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_id",
+                                                                                                        "key":  "cart_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2657,7 +2657,7 @@
                                       "name":  "/items",
                                       "item":  [
                                                    {
-                                                       "name":  "List Card Items",
+                                                       "name":  "List Cart Items",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2674,12 +2674,12 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/items",
+                                                                                   "raw":  "{{baseUrl}}/carts/items",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "items"
                                                                                             ]
                                                                                }
@@ -2689,7 +2689,7 @@
                                                                     ]
                                                    },
                                                    {
-                                                       "name":  "Create Card Item",
+                                                       "name":  "Create Cart Item",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2710,7 +2710,7 @@
                                                                                   ],
                                                                        "body":  {
                                                                                     "mode":  "raw",
-                                                                                    "raw":  "{\n  \"card_id\": 1,\n  \"product_variant_id\": 1,\n  \"quantity\": 2,\n  \"unit_price_snapshot\": \"29.90\",\n  \"currency\": \"TRY\",\n  \"is_selected\": true\n}",
+                                                                                    "raw":  "{\n  \"cart_id\": 1,\n  \"product_variant_id\": 1,\n  \"quantity\": 2,\n  \"unit_price_snapshot\": \"29.90\",\n  \"currency\": \"TRY\",\n  \"is_selected\": true\n}",
                                                                                     "options":  {
                                                                                                     "raw":  {
                                                                                                                 "language":  "json"
@@ -2718,12 +2718,12 @@
                                                                                                 }
                                                                                 },
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/items",
+                                                                                   "raw":  "{{baseUrl}}/carts/items",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "items"
                                                                                             ]
                                                                                }
@@ -2735,10 +2735,10 @@
                                                ]
                                   },
                                   {
-                                      "name":  "/{card_id}/items",
+                                      "name":  "/{cart_id}/items",
                                       "item":  [
                                                    {
-                                                       "name":  "List Items By Card",
+                                                       "name":  "List Items By Cart",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2755,18 +2755,18 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/:card_id/items",
+                                                                                   "raw":  "{{baseUrl}}/carts/:cart_id/items",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
-                                                                                                ":card_id",
+                                                                                                "carts",
+                                                                                                ":cart_id",
                                                                                                 "items"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_id",
+                                                                                                        "key":  "cart_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2779,10 +2779,10 @@
                                                ]
                                   },
                                   {
-                                      "name":  "/items/{card_item_id}",
+                                      "name":  "/items/{cart_item_id}",
                                       "item":  [
                                                    {
-                                                       "name":  "Get Card Item",
+                                                       "name":  "Get Cart Item",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2799,18 +2799,18 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/items/:card_item_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/items/:cart_item_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "items",
-                                                                                                ":card_item_id"
+                                                                                                ":cart_item_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_item_id",
+                                                                                                        "key":  "cart_item_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2821,7 +2821,7 @@
                                                                     ]
                                                    },
                                                    {
-                                                       "name":  "Update Card Item",
+                                                       "name":  "Update Cart Item",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2850,18 +2850,18 @@
                                                                                                 }
                                                                                 },
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/items/:card_item_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/items/:cart_item_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "items",
-                                                                                                ":card_item_id"
+                                                                                                ":cart_item_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_item_id",
+                                                                                                        "key":  "cart_item_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]
@@ -2872,7 +2872,7 @@
                                                                     ]
                                                    },
                                                    {
-                                                       "name":  "Delete Card Item",
+                                                       "name":  "Delete Cart Item",
                                                        "request":  {
                                                                        "auth":  {
                                                                                     "bearer":  [
@@ -2889,18 +2889,18 @@
 
                                                                                   ],
                                                                        "url":  {
-                                                                                   "raw":  "{{baseUrl}}/cards/items/:card_item_id",
+                                                                                   "raw":  "{{baseUrl}}/carts/items/:cart_item_id",
                                                                                    "host":  [
                                                                                                 "{{baseUrl}}"
                                                                                             ],
                                                                                    "path":  [
-                                                                                                "cards",
+                                                                                                "carts",
                                                                                                 "items",
-                                                                                                ":card_item_id"
+                                                                                                ":cart_item_id"
                                                                                             ],
                                                                                    "variable":  [
                                                                                                     {
-                                                                                                        "key":  "card_item_id",
+                                                                                                        "key":  "cart_item_id",
                                                                                                         "value":  "1"
                                                                                                     }
                                                                                                 ]

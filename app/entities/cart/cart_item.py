@@ -9,26 +9,26 @@ from app.db.base import Base, TimestampMixin
 from app.entities.catalog.catalog import fk_table
 
 if TYPE_CHECKING:
-    from app.entities.card.card import Card
+    from app.entities.cart.cart import Cart
     from app.entities.catalog.product_variant import ProductVariant
 
 _SETTINGS = get_settings()
 _SCHEMA = None if _SETTINGS.database_url.startswith("sqlite") else _SETTINGS.database_schema
 
 
-class CardItem(TimestampMixin, Base):
-    __tablename__ = "card_items"
+class CartItem(TimestampMixin, Base):
+    __tablename__ = "cart_items"
     __table_args__ = (
-        UniqueConstraint("card_id", "product_variant_id", name="uq_card_items_card_variant"),
-        Index("ix_card_items_card_id", "card_id"),
-        Index("ix_card_items_product_variant_id", "product_variant_id"),
+        UniqueConstraint("cart_id", "product_variant_id", name="uq_cart_items_cart_variant"),
+        Index("ix_cart_items_cart_id", "cart_id"),
+        Index("ix_cart_items_product_variant_id", "product_variant_id"),
         {"schema": _SCHEMA} if _SCHEMA else {},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    card_id: Mapped[int] = mapped_column(
-        ForeignKey(fk_table("cards"), ondelete="CASCADE"),
+    cart_id: Mapped[int] = mapped_column(
+        ForeignKey(fk_table("carts"), ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -63,6 +63,6 @@ class CardItem(TimestampMixin, Base):
         server_default="true",
     )
 
-    card: Mapped["Card"] = relationship("Card", back_populates="items")
+    cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
 
     product_variant: Mapped["ProductVariant"] = relationship("ProductVariant")

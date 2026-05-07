@@ -1,4 +1,4 @@
-from app.entities.card import Card, CardItem
+from app.entities.cart import Cart, CartItem
 from app.entities.user import User
 from app.entities.catalog import (
     Brand,
@@ -16,8 +16,8 @@ from app.entities.order import (
 
 __all__ = [
     "User",
-    "Card",
-    "CardItem",
+    "Cart",
+    "CartItem",
     "Brand",
     "Category",
     "Inventory",

@@ -4,8 +4,8 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 
-class CardItemCreate(BaseModel):
-    card_id: int
+class CartItemCreate(BaseModel):
+    cart_id: int
     product_variant_id: int
     quantity: int = 1
     unit_price_snapshot: Decimal
@@ -13,8 +13,8 @@ class CardItemCreate(BaseModel):
     is_selected: bool = True
 
 
-class CardItemUpdate(BaseModel):
-    card_id: int | None = None
+class CartItemUpdate(BaseModel):
+    cart_id: int | None = None
     product_variant_id: int | None = None
     quantity: int | None = None
     unit_price_snapshot: Decimal | None = None
@@ -22,9 +22,9 @@ class CardItemUpdate(BaseModel):
     is_selected: bool | None = None
 
 
-class CardItemRead(BaseModel):
+class CartItemRead(BaseModel):
     id: int
-    card_id: int
+    cart_id: int
     product_variant_id: int
     quantity: int
     unit_price_snapshot: Decimal
@@ -36,4 +36,4 @@ class CardItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-__all__ = ["CardItemCreate", "CardItemRead", "CardItemUpdate"]
+__all__ = ["CartItemCreate", "CartItemRead", "CartItemUpdate"]

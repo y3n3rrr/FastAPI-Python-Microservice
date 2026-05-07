@@ -163,13 +163,13 @@ Use the helper script for code-first Alembic migrations:
 
 The script is idempotent, so running it multiple times updates seed rows instead of creating duplicates.
 
-### Seed Card Data
+### Seed Cart Data
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\seed_card.py
+.\.venv\Scripts\python.exe scripts\seed_cart.py
 ```
 
-Run this after catalog seed data, because card seed references an existing `product_variant`.
+Run this after catalog seed data, because Cart seed references an existing `product_variant`.
 
 ## Running the Application
 

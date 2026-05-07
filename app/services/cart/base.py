@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 TEntity = TypeVar("TEntity")
 
 
-class CardServiceBase:
+class CartServiceBase:
     def __init__(self, db: Session) -> None:
         self.db = db
 
