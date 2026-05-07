@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "fastapi-microservice"
     environment: str = "development"
     debug: bool = True
-    database_url: str
+    database_url: str = "sqlite:///./fastapi_microservice.db"
     database_schema: str = "migros_store"
     log_level: str = "INFO"
     jwt_secret_key: str = "change-me"

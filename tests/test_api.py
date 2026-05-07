@@ -1,33 +1,38 @@
 import os
 import time
 import unittest
-from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 
 class ApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.database_path = Path("tests") / "test_app.db"
-        if cls.database_path.exists():
-            cls.database_path.unlink()
-        os.environ["APP_DATABASE_URL"] = f"sqlite:///./{cls.database_path.as_posix()}"
+        cls._previous_env = {
+            "APP_DATABASE_SCHEMA": os.environ.get("APP_DATABASE_SCHEMA"),
+            "APP_JWT_SECRET_KEY": os.environ.get("APP_JWT_SECRET_KEY"),
+            "APP_API_REQUEST_LOGGING_ENABLED": os.environ.get("APP_API_REQUEST_LOGGING_ENABLED"),
+        }
+        cls.test_schema = f"migros_store_test_{int(time.time())}"
+        os.environ["APP_DATABASE_SCHEMA"] = cls.test_schema
         os.environ["APP_JWT_SECRET_KEY"] = "test-secret-key"
         os.environ["APP_API_REQUEST_LOGGING_ENABLED"] = "false"
 
         from app.core.config import get_settings
         from app.core.security import create_access_token, hash_password
-        from app.db.base import Base
         from app.db.session import get_session_factory, reset_db_state
         from app.entities.user import User
-        import app.entities  # noqa: F401
+        from alembic import command
+        from alembic.config import Config
 
         get_settings.cache_clear()
         reset_db_state()
-        engine = create_engine(os.environ["APP_DATABASE_URL"], connect_args={"check_same_thread": False})
-        Base.metadata.create_all(bind=engine)
-        engine.dispose()
+        settings = get_settings()
+        if settings.database_url.startswith("sqlite"):
+            raise RuntimeError("Tests are configured to use PostgreSQL; set APP_DATABASE_URL to a PostgreSQL database.")
+
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
 
         session = get_session_factory()()
         try:
@@ -56,18 +61,22 @@ class ApiTests(unittest.TestCase):
         from app.db.session import reset_db_state
 
         cls.client.close()
+
+        settings = get_settings()
+        if not settings.database_url.startswith("sqlite"):
+            engine = create_engine(settings.database_url, pool_pre_ping=True)
+            with engine.begin() as connection:
+                connection.execute(text(f'DROP SCHEMA IF EXISTS "{cls.test_schema}" CASCADE'))
+            engine.dispose()
+
         reset_db_state()
         get_settings.cache_clear()
-        if cls.database_path.exists():
-            for _ in range(5):
-                try:
-                    cls.database_path.unlink()
-                    break
-                except PermissionError:
-                    time.sleep(0.1)
-        os.environ.pop("APP_DATABASE_URL", None)
-        os.environ.pop("APP_JWT_SECRET_KEY", None)
-        os.environ.pop("APP_API_REQUEST_LOGGING_ENABLED", None)
+
+        for key, value in cls._previous_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
     def test_health_check(self) -> None:
         response = self.client.get("/health")
@@ -154,6 +163,576 @@ class ApiTests(unittest.TestCase):
 
         missing_response = self.client.get(f"/users/{created_user['id']}", headers=auth_headers)
         self.assertEqual(missing_response.status_code, 401)
+
+    def test_catalog_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/catalog/brands")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Catalog",
+                "surname": "Tester",
+                "email": "catalog-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "catalog-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        brand_create = self.client.post(
+            "/catalog/brands",
+            json={
+                "name": "Migros Test Brand",
+                "slug": "migros-test-brand",
+                "description": "Test brand description",
+                "logo_url": "https://example.com/logo.png",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(brand_create.status_code, 201)
+        brand_id = brand_create.json()["id"]
+
+        category_create = self.client.post(
+            "/catalog/categories",
+            json={
+                "parent_id": None,
+                "name": "Beverages Test",
+                "slug": "beverages-test",
+                "description": "Test category",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(category_create.status_code, 201)
+        category_id = category_create.json()["id"]
+
+        product_create = self.client.post(
+            "/catalog/products",
+            json={
+                "category_id": category_id,
+                "brand_id": brand_id,
+                "name": "Orange Juice Test 1L",
+                "slug": "orange-juice-test-1l",
+                "description": "Test product",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(product_create.status_code, 201)
+        product_id = product_create.json()["id"]
+
+        variant_create = self.client.post(
+            "/catalog/variants",
+            json={
+                "product_id": product_id,
+                "sku": "SKU-TEST-001",
+                "barcode": "8690000000001",
+                "name": "1L",
+                "color": None,
+                "size": "1L",
+                "price": "39.90",
+                "compare_at_price": "44.90",
+                "currency": "TRY",
+                "weight_kg": "1.050",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(variant_create.status_code, 201)
+        variant_id = variant_create.json()["id"]
+
+        image_create = self.client.post(
+            "/catalog/images",
+            json={
+                "product_id": product_id,
+                "image_url": "https://example.com/product-test.jpg",
+                "alt_text": "Product test image",
+                "sort_order": 0,
+                "is_primary": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(image_create.status_code, 201)
+        image_id = image_create.json()["id"]
+
+        inventory_create = self.client.post(
+            "/catalog/inventory",
+            json={
+                "variant_id": variant_id,
+                "quantity": 25,
+                "reserved_quantity": 3,
+                "reorder_level": 8,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(inventory_create.status_code, 201)
+        inventory_id = inventory_create.json()["id"]
+
+        products_list = self.client.get("/catalog/products", headers=auth_headers)
+        self.assertEqual(products_list.status_code, 200)
+        self.assertTrue(any(product["id"] == product_id for product in products_list.json()))
+
+        product_update = self.client.put(
+            f"/catalog/products/{product_id}",
+            json={"description": "Updated test product"},
+            headers=auth_headers,
+        )
+        self.assertEqual(product_update.status_code, 200)
+        self.assertEqual(product_update.json()["description"], "Updated test product")
+
+        inventory_update = self.client.put(
+            f"/catalog/inventory/{inventory_id}",
+            json={"quantity": 40, "reserved_quantity": 5},
+            headers=auth_headers,
+        )
+        self.assertEqual(inventory_update.status_code, 200)
+        self.assertEqual(inventory_update.json()["quantity"], 40)
+
+        delete_image = self.client.delete(f"/catalog/images/{image_id}", headers=auth_headers)
+        self.assertEqual(delete_image.status_code, 204)
+
+        delete_inventory = self.client.delete(f"/catalog/inventory/{inventory_id}", headers=auth_headers)
+        self.assertEqual(delete_inventory.status_code, 204)
+
+        delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
+        self.assertEqual(delete_variant.status_code, 204)
+
+        delete_product = self.client.delete(f"/catalog/products/{product_id}", headers=auth_headers)
+        self.assertEqual(delete_product.status_code, 204)
+
+        delete_category = self.client.delete(f"/catalog/categories/{category_id}", headers=auth_headers)
+        self.assertEqual(delete_category.status_code, 204)
+
+        delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
+        self.assertEqual(delete_brand.status_code, 204)
+
+    def test_cart_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/carts")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Cart",
+                "surname": "Tester",
+                "email": "Cart-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "Cart-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        brand_create = self.client.post(
+            "/catalog/brands",
+            json={
+                "name": "Cart Brand",
+                "slug": "Cart-brand",
+                "description": "Brand for Cart tests",
+                "logo_url": "https://example.com/Cart-brand.png",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(brand_create.status_code, 201)
+        brand_id = brand_create.json()["id"]
+
+        category_create = self.client.post(
+            "/catalog/categories",
+            json={
+                "parent_id": None,
+                "name": "Cart Category",
+                "slug": "Cart-category",
+                "description": "Category for Cart tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(category_create.status_code, 201)
+        category_id = category_create.json()["id"]
+
+        product_create = self.client.post(
+            "/catalog/products",
+            json={
+                "category_id": category_id,
+                "brand_id": brand_id,
+                "name": "Cart Product 1L",
+                "slug": "Cart-product-1l",
+                "description": "Product for Cart tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(product_create.status_code, 201)
+        product_id = product_create.json()["id"]
+
+        variant_create = self.client.post(
+            "/catalog/variants",
+            json={
+                "product_id": product_id,
+                "sku": "SKU-Cart-001",
+                "barcode": "8690000000101",
+                "name": "1L",
+                "color": None,
+                "size": "1L",
+                "price": "29.90",
+                "compare_at_price": "34.90",
+                "currency": "TRY",
+                "weight_kg": "1.050",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(variant_create.status_code, 201)
+        variant_id = variant_create.json()["id"]
+
+        cart_create = self.client.post(
+            "/carts",
+            json={
+                "user_id": user_id,
+                "status": "active",
+                "currency": "TRY",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(cart_create.status_code, 201)
+        cart_id = cart_create.json()["id"]
+
+        list_user_carts = self.client.get(f"/carts/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_carts.status_code, 200)
+        self.assertTrue(any(cart["id"] == cart_id for cart in list_user_carts.json()))
+
+        cart_item_create = self.client.post(
+            "/carts/items",
+            json={
+                "cart_id": cart_id,
+                "product_variant_id": variant_id,
+                "quantity": 3,
+                "unit_price_snapshot": "29.90",
+                "currency": "TRY",
+                "is_selected": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(cart_item_create.status_code, 201)
+        cart_item_id = cart_item_create.json()["id"]
+
+        list_cart_items = self.client.get(f"/carts/{cart_id}/items", headers=auth_headers)
+        self.assertEqual(list_cart_items.status_code, 200)
+        self.assertTrue(any(item["id"] == cart_item_id for item in list_cart_items.json()))
+
+        cart_item_update = self.client.put(
+            f"/carts/items/{cart_item_id}",
+            json={"quantity": 5, "is_selected": False},
+            headers=auth_headers,
+        )
+        self.assertEqual(cart_item_update.status_code, 200)
+        self.assertEqual(cart_item_update.json()["quantity"], 5)
+        self.assertFalse(cart_item_update.json()["is_selected"])
+
+        delete_cart_item = self.client.delete(f"/carts/items/{cart_item_id}", headers=auth_headers)
+        self.assertEqual(delete_cart_item.status_code, 204)
+
+        delete_cart = self.client.delete(f"/carts/{cart_id}", headers=auth_headers)
+        self.assertEqual(delete_cart.status_code, 204)
+
+        delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
+        self.assertEqual(delete_variant.status_code, 204)
+
+        delete_product = self.client.delete(f"/catalog/products/{product_id}", headers=auth_headers)
+        self.assertEqual(delete_product.status_code, 204)
+
+        delete_category = self.client.delete(f"/catalog/categories/{category_id}", headers=auth_headers)
+        self.assertEqual(delete_category.status_code, 204)
+
+        delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
+        self.assertEqual(delete_brand.status_code, 204)
+
+    def test_order_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/orders")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Order",
+                "surname": "Tester",
+                "email": "order-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "order-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        brand_create = self.client.post(
+            "/catalog/brands",
+            json={
+                "name": "Order Brand",
+                "slug": "order-brand",
+                "description": "Brand for order tests",
+                "logo_url": "https://example.com/order-brand.png",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(brand_create.status_code, 201)
+        brand_id = brand_create.json()["id"]
+
+        category_create = self.client.post(
+            "/catalog/categories",
+            json={
+                "parent_id": None,
+                "name": "Order Category",
+                "slug": "order-category",
+                "description": "Category for order tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(category_create.status_code, 201)
+        category_id = category_create.json()["id"]
+
+        product_create = self.client.post(
+            "/catalog/products",
+            json={
+                "category_id": category_id,
+                "brand_id": brand_id,
+                "name": "Order Product 1L",
+                "slug": "order-product-1l",
+                "description": "Product for order tests",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(product_create.status_code, 201)
+        product_id = product_create.json()["id"]
+
+        variant_create = self.client.post(
+            "/catalog/variants",
+            json={
+                "product_id": product_id,
+                "sku": "SKU-ORDER-001",
+                "barcode": "8690000000201",
+                "name": "1L",
+                "color": None,
+                "size": "1L",
+                "price": "49.90",
+                "compare_at_price": "54.90",
+                "currency": "TRY",
+                "weight_kg": "1.050",
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(variant_create.status_code, 201)
+        variant_id = variant_create.json()["id"]
+
+        order_create = self.client.post(
+            "/orders",
+            json={
+                "user_id": user_id,
+                "status": "pending",
+                "currency": "TRY",
+                "total_amount": "99.80",
+                "note": "Order test create",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(order_create.status_code, 201)
+        order_id = order_create.json()["id"]
+
+        list_user_orders = self.client.get(f"/orders/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_orders.status_code, 200)
+        self.assertTrue(any(order["id"] == order_id for order in list_user_orders.json()))
+
+        order_item_create = self.client.post(
+            "/orders/items",
+            json={
+                "order_id": order_id,
+                "product_variant_id": variant_id,
+                "quantity": 2,
+                "unit_price_snapshot": "49.90",
+                "line_total": "99.80",
+                "currency": "TRY",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(order_item_create.status_code, 201)
+        order_item_id = order_item_create.json()["id"]
+
+        list_order_items = self.client.get(f"/orders/{order_id}/items", headers=auth_headers)
+        self.assertEqual(list_order_items.status_code, 200)
+        self.assertTrue(any(item["id"] == order_item_id for item in list_order_items.json()))
+
+        status_history_create = self.client.post(
+            "/orders/status-history",
+            json={
+                "order_id": order_id,
+                "from_status": "pending",
+                "to_status": "confirmed",
+                "changed_by_user_id": user_id,
+                "note": "Confirmed by test",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(status_history_create.status_code, 201)
+        history_id = status_history_create.json()["id"]
+
+        list_status_history = self.client.get(f"/orders/{order_id}/status-history", headers=auth_headers)
+        self.assertEqual(list_status_history.status_code, 200)
+        self.assertTrue(any(history["id"] == history_id for history in list_status_history.json()))
+
+        order_update = self.client.put(
+            f"/orders/{order_id}",
+            json={"status": "confirmed", "note": "Updated order status"},
+            headers=auth_headers,
+        )
+        self.assertEqual(order_update.status_code, 200)
+        self.assertEqual(order_update.json()["status"], "confirmed")
+
+        order_item_update = self.client.put(
+            f"/orders/items/{order_item_id}",
+            json={"quantity": 3, "line_total": "149.70"},
+            headers=auth_headers,
+        )
+        self.assertEqual(order_item_update.status_code, 200)
+        self.assertEqual(order_item_update.json()["quantity"], 3)
+
+        status_history_update = self.client.put(
+            f"/orders/status-history/{history_id}",
+            json={"note": "Update note for history"},
+            headers=auth_headers,
+        )
+        self.assertEqual(status_history_update.status_code, 200)
+        self.assertEqual(status_history_update.json()["note"], "Update note for history")
+
+        delete_status_history = self.client.delete(f"/orders/status-history/{history_id}", headers=auth_headers)
+        self.assertEqual(delete_status_history.status_code, 204)
+
+        delete_order_item = self.client.delete(f"/orders/items/{order_item_id}", headers=auth_headers)
+        self.assertEqual(delete_order_item.status_code, 204)
+
+        delete_order = self.client.delete(f"/orders/{order_id}", headers=auth_headers)
+        self.assertEqual(delete_order.status_code, 204)
+
+        delete_variant = self.client.delete(f"/catalog/variants/{variant_id}", headers=auth_headers)
+        self.assertEqual(delete_variant.status_code, 204)
+
+        delete_product = self.client.delete(f"/catalog/products/{product_id}", headers=auth_headers)
+        self.assertEqual(delete_product.status_code, 204)
+
+        delete_category = self.client.delete(f"/catalog/categories/{category_id}", headers=auth_headers)
+        self.assertEqual(delete_category.status_code, 204)
+
+        delete_brand = self.client.delete(f"/catalog/brands/{brand_id}", headers=auth_headers)
+        self.assertEqual(delete_brand.status_code, 204)
+
+    def test_user_payment_method_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/payment-methods")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Payment",
+                "surname": "Tester",
+                "email": "payment-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "payment-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        create_response = self.client.post(
+            "/payment-methods",
+            json={
+                "user_id": user_id,
+                "provider": "stripe",
+                "provider_customer_id": "cus_test_001",
+                "provider_payment_method_id": "pm_test_001",
+                "card_brand": "visa",
+                "card_last4": "4242",
+                "exp_month": 12,
+                "exp_year": 2030,
+                "cardholder_name": "Payment Tester",
+                "is_default": True,
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(create_response.status_code, 201)
+        payment_method_id = create_response.json()["id"]
+
+        list_user_response = self.client.get(f"/payment-methods/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_response.status_code, 200)
+        self.assertTrue(any(item["id"] == payment_method_id for item in list_user_response.json()))
+
+        get_response = self.client.get(f"/payment-methods/{payment_method_id}", headers=auth_headers)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["provider_payment_method_id"], "pm_test_001")
+
+        update_response = self.client.put(
+            f"/payment-methods/{payment_method_id}",
+            json={
+                "is_default": False,
+                "cardholder_name": "Updated Payment Tester",
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertFalse(update_response.json()["is_default"])
+        self.assertEqual(update_response.json()["cardholder_name"], "Updated Payment Tester")
+
+        delete_response = self.client.delete(f"/payment-methods/{payment_method_id}", headers=auth_headers)
+        self.assertEqual(delete_response.status_code, 204)
 
 
 if __name__ == "__main__":

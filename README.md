@@ -155,6 +155,30 @@ Use the helper script for code-first Alembic migrations:
 .\scripts\migrate.ps1 history
 ```
 
+### Seed Catalog Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_catalog.py
+```
+
+The script is idempotent, so running it multiple times updates seed rows instead of creating duplicates.
+
+### Seed Cart Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_cart.py
+```
+
+Run this after catalog seed data, because Cart seed references an existing `product_variant`.
+
+### Seed Payment Method Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_payment_method.py
+```
+
+Run this after user data is available. The script creates a fallback user `id=1` when needed.
+
 ## Running the Application
 
 ### Development Mode
