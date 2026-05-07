@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     database_url: str
-    database_schema: str = "bookstore"
+    database_schema: str = "migros-store"
     log_level: str = "INFO"
     jwt_secret_key: str = "change-me"
     jwt_access_token_expire_minutes: int = 60

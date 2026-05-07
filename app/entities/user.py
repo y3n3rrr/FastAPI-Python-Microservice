@@ -2,13 +2,13 @@ from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import get_settings
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 _SETTINGS = get_settings()
 _SCHEMA = None if _SETTINGS.database_url.startswith("sqlite") else _SETTINGS.database_schema
 
 
-class User(Base):
+class User(TimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = {"schema": _SCHEMA} if _SCHEMA else {}
 

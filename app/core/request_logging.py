@@ -84,7 +84,7 @@ class ApiRequestLogWriter:
         self.thread = threading.Thread(target=self._run, name="api-request-log-writer", daemon=True)
         self.insert_statement = text(
             """
-            INSERT INTO bookstore.api_request_logs (
+            INSERT INTO migros-store.api_request_logs (
                 request_id,
                 user_id,
                 method,
