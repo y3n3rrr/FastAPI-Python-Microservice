@@ -100,7 +100,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         if getattr(response, "body", None) is not None:
             return bytes(response.body)
 
-        body_chunks = [chunk async for chunk in response.body_iterator]
+        body_chunks = [chunk async for chunk in response.body_iterator] # pyright: ignore[reportAttributeAccessIssue]
         return b"".join(body_chunks)
 
     @staticmethod

@@ -1,9 +1,11 @@
-from decimal import Decimal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import (
     Boolean,
     ForeignKey,
     Integer,
-    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -12,16 +14,19 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.entities.catalog.catalog import fk_table
-from app.entities.user import _SCHEMA, TimestampMixin
-from app.core.config import get_settings
+from app.db.base import TimestampMixin
+from app.entities.catalog import fk_table
+from app.entities.catalog.catalog import SCHEMA
+
+if TYPE_CHECKING:
+    from app.entities.catalog.product import Product
 
 class Category(TimestampMixin, Base):
     __tablename__ = "categories"
     __table_args__ = (
         UniqueConstraint("slug", name="uq_categories_slug"),
         Index("ix_categories_name", "name"),
-        {"schema": _SCHEMA} if _SCHEMA else {},
+        {"schema": SCHEMA} if SCHEMA else {},
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
