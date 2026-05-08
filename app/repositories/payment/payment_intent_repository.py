@@ -23,6 +23,14 @@ class PaymentIntentRepository:
         )
         return self.db.scalar(stmt)
 
+    def list_by_user(self, user_id: int) -> builtins.list[PaymentIntent]:
+        stmt = (
+            select(PaymentIntent)
+            .where(PaymentIntent.user_id == user_id)
+            .order_by(PaymentIntent.created_at.desc(), PaymentIntent.id.desc())
+        )
+        return list(self.db.scalars(stmt))
+
     def add(self, payment_intent: PaymentIntent) -> PaymentIntent:
         self.db.add(payment_intent)
         return payment_intent

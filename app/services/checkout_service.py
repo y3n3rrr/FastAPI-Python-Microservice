@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from collections import defaultdict
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -162,3 +163,33 @@ class CheckoutService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Checkout failed due to an unexpected error.",
             ) from exc
+
+    def list_user_transactions(self, user_id: int) -> list[tuple[PaymentIntent, Order | None, list[OrderItem]]]:
+        user = self.user_repository.get(user_id)
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+        payment_intents = self.payment_intent_repository.list_by_user(user_id)
+        if not payment_intents:
+            return []
+
+        order_ids = [intent.order_id for intent in payment_intents if intent.order_id is not None]
+        orders_by_id: dict[int, Order] = {}
+        order_items_by_order_id: dict[int, list[OrderItem]] = defaultdict(list)
+
+        if order_ids:
+            orders_stmt = select(Order).where(Order.id.in_(order_ids))
+            orders = list(self.db.scalars(orders_stmt))
+            orders_by_id = {order.id: order for order in orders}
+
+            order_items_stmt = select(OrderItem).where(OrderItem.order_id.in_(order_ids)).order_by(OrderItem.order_id, OrderItem.id)
+            for order_item in self.db.scalars(order_items_stmt):
+                order_items_by_order_id[order_item.order_id].append(order_item)
+
+        transactions: list[tuple[PaymentIntent, Order | None, list[OrderItem]]] = []
+        for payment_intent in payment_intents:
+            order = orders_by_id.get(payment_intent.order_id) if payment_intent.order_id is not None else None
+            order_items = order_items_by_order_id.get(order.id, []) if order is not None else []
+            transactions.append((payment_intent, order, order_items))
+
+        return transactions

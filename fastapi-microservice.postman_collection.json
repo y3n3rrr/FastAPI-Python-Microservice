@@ -2959,6 +2959,46 @@
                                       "response":  [
 
                                                    ]
+                                  },
+                                  {
+                                      "name":  "List User Transactions",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{auth-token}}"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/checkout/users/:user_id/transactions",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "checkout",
+                                                                               "users",
+                                                                               ":user_id",
+                                                                               "transactions"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "user_id",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
                                   }
                               ]
                  },
@@ -3100,7 +3140,7 @@
     "variable":  [
                      {
                          "key":  "baseUrl",
-                         "value":  "/"
+                         "value":  "http://127.0.0.1:8000"
                      }
                  ]
 }

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
-from app.schemas.checkout import CheckoutCreate, CheckoutRead, PaymentIntentRead
+from app.schemas.checkout import CheckoutCreate, CheckoutRead, PaymentIntentRead, UserTransactionRead
 from app.schemas.order import OrderItemRead, OrderRead
 from app.services.checkout_service import CheckoutService
 
@@ -30,3 +30,19 @@ def create_checkout(
         order=order_read,
         order_items=order_items_read,
     )
+
+
+@router.get("/users/{user_id}/transactions", response_model=list[UserTransactionRead])
+def list_user_transactions(
+    user_id: int,
+    service: CheckoutService = Depends(get_checkout_service),
+) -> list[UserTransactionRead]:
+    transactions = service.list_user_transactions(user_id)
+    return [
+        UserTransactionRead(
+            payment_intent=PaymentIntentRead.model_validate(payment_intent),
+            order=OrderRead.model_validate(order) if order is not None else None,
+            order_items=[OrderItemRead.model_validate(item) for item in order_items],
+        )
+        for payment_intent, order, order_items in transactions
+    ]

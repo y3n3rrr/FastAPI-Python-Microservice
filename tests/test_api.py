@@ -892,6 +892,14 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(inventory_after.status_code, 200)
         self.assertEqual(inventory_after.json()["quantity"], 7)
 
+        transactions_response = self.client.get(f"/checkout/users/{user_id}/transactions", headers=auth_headers)
+        self.assertEqual(transactions_response.status_code, 200)
+        transactions_payload = transactions_response.json()
+        self.assertGreaterEqual(len(transactions_payload), 1)
+        self.assertEqual(transactions_payload[0]["payment_intent"]["id"], payload["payment_intent"]["id"])
+        self.assertEqual(transactions_payload[0]["order"]["id"], payload["order"]["id"])
+        self.assertEqual(len(transactions_payload[0]["order_items"]), 1)
+
         checkout_fail_headers = dict(auth_headers)
         checkout_fail_headers["Idempotency-Key"] = "checkout-key-002"
         checkout_fail_response = self.client.post(

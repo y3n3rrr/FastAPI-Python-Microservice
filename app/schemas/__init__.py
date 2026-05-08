@@ -1,6 +1,6 @@
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.assistant import ChatMessageRead, ChatRequest, ChatResponse, ChatSessionRead
-from app.schemas.checkout import CheckoutCreate, CheckoutItemCreate, CheckoutRead, PaymentIntentRead
+from app.schemas.checkout import CheckoutCreate, CheckoutItemCreate, CheckoutRead, PaymentIntentRead, UserTransactionRead
 from app.schemas.cart import (
     CartCreate,
     CartItemCreate,
@@ -54,6 +54,7 @@ __all__ = [
     "CheckoutCreate",
     "PaymentIntentRead",
     "CheckoutRead",
+    "UserTransactionRead",
     "UserCreate",
     "UserRead",
     "UserUpdate",

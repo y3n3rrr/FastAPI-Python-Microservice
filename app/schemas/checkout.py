@@ -39,3 +39,9 @@ class CheckoutRead(BaseModel):
     payment_intent: PaymentIntentRead
     order: OrderRead
     order_items: list[OrderItemRead]
+
+
+class UserTransactionRead(BaseModel):
+    payment_intent: PaymentIntentRead
+    order: OrderRead | None = None
+    order_items: list[OrderItemRead] = Field(default_factory=list)
