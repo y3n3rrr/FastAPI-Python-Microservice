@@ -24,13 +24,32 @@ class CheckoutService:
         self.payment_method_repository = UserPaymentMethodRepository(db)
         self.payment_intent_repository = PaymentIntentRepository(db)
 
-    def checkout(self, payload: CheckoutCreate) -> tuple[PaymentIntent, Order, list[OrderItem]]:
+    def checkout(self, payload: CheckoutCreate, idempotency_key: str) -> tuple[PaymentIntent, Order, list[OrderItem]]:
         if not payload.items:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one checkout item is required.")
+        if not idempotency_key.strip():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Idempotency-Key header is required.")
 
         user = self.user_repository.get(payload.user_id)
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+        existing_intent = self.payment_intent_repository.get_by_user_and_idempotency_key(payload.user_id, idempotency_key)
+        if existing_intent is not None:
+            if existing_intent.order_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Checkout request is already in progress for this Idempotency-Key.",
+                )
+            existing_order = self.db.get(Order, existing_intent.order_id)
+            if existing_order is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Checkout result is inconsistent. Please retry with a new Idempotency-Key.",
+                )
+            existing_items_stmt = select(OrderItem).where(OrderItem.order_id == existing_order.id).order_by(OrderItem.id)
+            existing_items = list(self.db.scalars(existing_items_stmt))
+            return existing_intent, existing_order, existing_items
 
         default_payment_method = self.payment_method_repository.get_default_by_user(payload.user_id)
         if default_payment_method is None:
@@ -72,6 +91,7 @@ class CheckoutService:
                 status="requires_confirmation",
                 provider=default_payment_method.provider,
                 provider_payment_method_id=default_payment_method.provider_payment_method_id,
+                idempotency_key=idempotency_key,
                 failure_reason=None,
             )
             self.payment_intent_repository.add(payment_intent)

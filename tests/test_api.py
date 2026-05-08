@@ -854,6 +854,9 @@ class ApiTests(unittest.TestCase):
         )
         self.assertEqual(payment_method_create.status_code, 201)
 
+        checkout_headers = dict(auth_headers)
+        checkout_headers["Idempotency-Key"] = "checkout-key-001"
+
         checkout_response = self.client.post(
             "/checkout",
             json={
@@ -861,7 +864,7 @@ class ApiTests(unittest.TestCase):
                 "items": [{"product_variant_id": variant_id, "quantity": 3}],
                 "note": "Checkout integration test",
             },
-            headers=auth_headers,
+            headers=checkout_headers,
         )
         self.assertEqual(checkout_response.status_code, 200)
         payload = checkout_response.json()
@@ -871,17 +874,33 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(len(payload["order_items"]), 1)
         self.assertEqual(payload["order_items"][0]["quantity"], 3)
 
+        checkout_retry_response = self.client.post(
+            "/checkout",
+            json={
+                "user_id": user_id,
+                "items": [{"product_variant_id": variant_id, "quantity": 3}],
+                "note": "Checkout integration test",
+            },
+            headers=checkout_headers,
+        )
+        self.assertEqual(checkout_retry_response.status_code, 200)
+        retry_payload = checkout_retry_response.json()
+        self.assertEqual(retry_payload["order"]["id"], payload["order"]["id"])
+        self.assertEqual(retry_payload["payment_intent"]["id"], payload["payment_intent"]["id"])
+
         inventory_after = self.client.get(f"/catalog/inventory/{inventory_id}", headers=auth_headers)
         self.assertEqual(inventory_after.status_code, 200)
         self.assertEqual(inventory_after.json()["quantity"], 7)
 
+        checkout_fail_headers = dict(auth_headers)
+        checkout_fail_headers["Idempotency-Key"] = "checkout-key-002"
         checkout_fail_response = self.client.post(
             "/checkout",
             json={
                 "user_id": user_id,
                 "items": [{"product_variant_id": variant_id, "quantity": 99}],
             },
-            headers=auth_headers,
+            headers=checkout_fail_headers,
         )
         self.assertEqual(checkout_fail_response.status_code, 409)
         self.assertIn("Insufficient inventory", checkout_fail_response.json()["detail"])
@@ -938,6 +957,15 @@ class ApiTests(unittest.TestCase):
         second_payload = second_chat.json()
         self.assertEqual(second_payload["session"]["id"], session_id)
         self.assertIn("Tell me a joke", second_payload["assistant_message"]["content"])
+
+        history_response = self.client.get(f"/assistant/chat/sessions/{session_id}/messages", headers=auth_headers)
+        self.assertEqual(history_response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual(len(history), 4)
+        self.assertEqual(history[0]["role"], "user")
+        self.assertEqual(history[1]["role"], "assistant")
+        self.assertEqual(history[2]["role"], "user")
+        self.assertEqual(history[3]["role"], "assistant")
 
 
 if __name__ == "__main__":

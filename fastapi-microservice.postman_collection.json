@@ -3052,6 +3052,47 @@
                                       "response":  [
 
                                                    ]
+                                  },
+                                  {
+                                      "name":  "Get Session Messages",
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "bearer",
+                                                                   "bearer":  [
+                                                                                  {
+                                                                                      "key":  "token",
+                                                                                      "type":  "string",
+                                                                                      "value":  "{{auth-token}}"
+                                                                                  }
+                                                                              ]
+                                                               },
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/assistant/chat/sessions/:session_id/messages",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "assistant",
+                                                                               "chat",
+                                                                               "sessions",
+                                                                               ":session_id",
+                                                                               "messages"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "session_id",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
                                   }
                               ]
                  }

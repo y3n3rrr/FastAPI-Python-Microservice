@@ -66,3 +66,9 @@ class ChatService:
         self.repository.add_session(session)
         self.db.flush()
         return session
+
+    def list_session_messages(self, *, session_id: int, user_id: int) -> list[ChatMessage]:
+        session = self.repository.get_session(session_id)
+        if session is None or session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+        return self.repository.list_messages_by_session(session_id)

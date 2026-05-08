@@ -16,6 +16,13 @@ class PaymentIntentRepository:
     def get(self, payment_intent_id: int) -> PaymentIntent | None:
         return self.db.get(PaymentIntent, payment_intent_id)
 
+    def get_by_user_and_idempotency_key(self, user_id: int, idempotency_key: str) -> PaymentIntent | None:
+        stmt = select(PaymentIntent).where(
+            PaymentIntent.user_id == user_id,
+            PaymentIntent.idempotency_key == idempotency_key,
+        )
+        return self.db.scalar(stmt)
+
     def add(self, payment_intent: PaymentIntent) -> PaymentIntent:
         self.db.add(payment_intent)
         return payment_intent

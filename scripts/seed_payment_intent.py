@@ -202,6 +202,7 @@ def _upsert_payment_intent(
             status="authorized",
             provider="stripe",
             provider_payment_method_id="pm_intent_seed_001",
+            idempotency_key="seed-payment-intent-001",
             failure_reason=None,
         )
         db.add(payment_intent)
@@ -213,6 +214,7 @@ def _upsert_payment_intent(
     payment_intent.currency = currency
     payment_intent.status = "authorized"
     payment_intent.provider = "stripe"
+    payment_intent.idempotency_key = "seed-payment-intent-001"
     payment_intent.failure_reason = None
     return payment_intent
 

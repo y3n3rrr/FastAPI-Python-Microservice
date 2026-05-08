@@ -22,6 +22,7 @@ class PaymentIntent(TimestampMixin, Base):
         Index("ix_payment_intents_user_id", "user_id"),
         Index("ix_payment_intents_order_id", "order_id"),
         Index("ix_payment_intents_status", "status"),
+        Index("uq_payment_intents_user_idempotency_key", "user_id", "idempotency_key", unique=True),
         {"schema": _SCHEMA} if _SCHEMA else {},
     )
 
@@ -61,6 +62,7 @@ class PaymentIntent(TimestampMixin, Base):
 
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     provider_payment_method_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped[object] = relationship("User")

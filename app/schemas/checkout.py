@@ -27,6 +27,7 @@ class PaymentIntentRead(BaseModel):
     status: str
     provider: str
     provider_payment_method_id: str
+    idempotency_key: str
     failure_reason: str | None
     created_at: datetime | None
     updated_at: datetime | None
