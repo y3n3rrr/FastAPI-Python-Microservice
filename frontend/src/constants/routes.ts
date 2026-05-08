@@ -5,6 +5,7 @@ export const ROUTES = {
   cart: "/cart",
   checkout: "/checkout",
   transactions: "/transactions",
+  assistant: "/assistant",
   login: "/login",
   register: "/register",
 } as const;

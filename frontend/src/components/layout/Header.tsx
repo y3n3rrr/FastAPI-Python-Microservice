@@ -13,6 +13,7 @@ const links = [
   { href: ROUTES.cart, label: "Cart" },
   { href: ROUTES.checkout, label: "Checkout" },
   { href: ROUTES.transactions, label: "Transactions" },
+  { href: ROUTES.assistant, label: "Assistant" },
   { href: ROUTES.dashboard, label: "Dashboard" },
   { href: ROUTES.login, label: "Login" },
   { href: ROUTES.register, label: "Register" },

@@ -9,6 +9,7 @@ export function Sidebar() {
         <Link href={ROUTES.products} className="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100">Browse products</Link>
         <Link href={ROUTES.checkout} className="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100">Go to checkout</Link>
         <Link href={ROUTES.transactions} className="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100">View transactions</Link>
+        <Link href={ROUTES.assistant} className="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-slate-100">Open assistant</Link>
       </div>
     </aside>
   );
