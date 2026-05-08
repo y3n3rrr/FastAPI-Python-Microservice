@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db_session
+from app.entities.user import User
 from app.schemas.checkout import CheckoutCreate, CheckoutRead, PaymentIntentRead, UserTransactionRead
 from app.schemas.order import OrderItemRead, OrderRead
 from app.services.checkout_service import CheckoutService
@@ -32,12 +34,20 @@ def create_checkout(
     )
 
 
-@router.get("/users/{user_id}/transactions", response_model=list[UserTransactionRead])
+@router.get("/transactions", response_model=list[UserTransactionRead])
 def list_user_transactions(
-    user_id: int,
+    user_id: int | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
     service: CheckoutService = Depends(get_checkout_service),
 ) -> list[UserTransactionRead]:
-    transactions = service.list_user_transactions(user_id)
+    target_user_id = current_user.id if user_id is None else user_id
+    if target_user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own transactions.",
+        )
+
+    transactions = service.list_user_transactions(target_user_id)
     return [
         UserTransactionRead(
             payment_intent=PaymentIntentRead.model_validate(payment_intent),

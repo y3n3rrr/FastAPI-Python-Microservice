@@ -892,7 +892,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(inventory_after.status_code, 200)
         self.assertEqual(inventory_after.json()["quantity"], 7)
 
-        transactions_response = self.client.get(f"/checkout/users/{user_id}/transactions", headers=auth_headers)
+        transactions_response = self.client.get("/checkout/transactions", headers=auth_headers)
         self.assertEqual(transactions_response.status_code, 200)
         transactions_payload = transactions_response.json()
         self.assertGreaterEqual(len(transactions_payload), 1)

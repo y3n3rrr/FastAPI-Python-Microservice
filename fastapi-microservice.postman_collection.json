@@ -2978,22 +2978,21 @@
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/checkout/users/:user_id/transactions",
+                                                                  "raw":  "{{baseUrl}}/checkout/transactions?user_id=",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "checkout",
-                                                                               "users",
-                                                                               ":user_id",
                                                                                "transactions"
                                                                            ],
-                                                                  "variable":  [
-                                                                                   {
-                                                                                       "key":  "user_id",
-                                                                                       "value":  "1"
-                                                                                   }
-                                                                               ]
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "user_id",
+                                                                                    "value":  "",
+                                                                                    "description":  "Optional. Leave empty to use current logged-in user."
+                                                                                }
+                                                                            ]
                                                               }
                                                   },
                                       "response":  [
