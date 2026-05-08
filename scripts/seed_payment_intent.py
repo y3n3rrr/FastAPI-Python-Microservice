@@ -182,14 +182,17 @@ def _upsert_payment_intent(
     *,
     user_id: int,
     payment_method_id: int,
-    order_id: int,
+    order_id: int | None,
     currency: str,
+    amount: Decimal,
+    status: str,
+    idempotency_key: str,
+    failure_reason: str | None = None,
 ) -> PaymentIntent:
     payment_intent = db.scalar(
         select(PaymentIntent).where(
             PaymentIntent.user_id == user_id,
-            PaymentIntent.provider_payment_method_id == "pm_intent_seed_001",
-            PaymentIntent.order_id == order_id,
+            PaymentIntent.idempotency_key == idempotency_key,
         )
     )
     if payment_intent is None:
@@ -197,25 +200,26 @@ def _upsert_payment_intent(
             user_id=user_id,
             payment_method_id=payment_method_id,
             order_id=order_id,
-            amount=Decimal("99.80"),
+            amount=amount,
             currency=currency,
-            status="authorized",
+            status=status,
             provider="stripe",
             provider_payment_method_id="pm_intent_seed_001",
-            idempotency_key="seed-payment-intent-001",
-            failure_reason=None,
+            idempotency_key=idempotency_key,
+            failure_reason=failure_reason,
         )
         db.add(payment_intent)
         db.flush()
         return payment_intent
 
     payment_intent.payment_method_id = payment_method_id
-    payment_intent.amount = Decimal("99.80")
+    payment_intent.order_id = order_id
+    payment_intent.amount = amount
     payment_intent.currency = currency
-    payment_intent.status = "authorized"
+    payment_intent.status = status
     payment_intent.provider = "stripe"
-    payment_intent.idempotency_key = "seed-payment-intent-001"
-    payment_intent.failure_reason = None
+    payment_intent.idempotency_key = idempotency_key
+    payment_intent.failure_reason = failure_reason
     return payment_intent
 
 
@@ -234,9 +238,35 @@ def seed_payment_intent() -> None:
             payment_method_id=payment_method.id,
             order_id=order.id,
             currency=variant.currency,
+            amount=Decimal("99.80"),
+            status="authorized",
+            idempotency_key="seed-payment-intent-001",
+            failure_reason=None,
+        )
+        _upsert_payment_intent(
+            db,
+            user_id=user.id,
+            payment_method_id=payment_method.id,
+            order_id=None,
+            currency=variant.currency,
+            amount=Decimal("49.90"),
+            status="failed",
+            idempotency_key="seed-payment-intent-002",
+            failure_reason="insufficient_funds",
+        )
+        _upsert_payment_intent(
+            db,
+            user_id=user.id,
+            payment_method_id=payment_method.id,
+            order_id=None,
+            currency=variant.currency,
+            amount=Decimal("29.90"),
+            status="requires_confirmation",
+            idempotency_key="seed-payment-intent-003",
+            failure_reason=None,
         )
         db.commit()
-        print("Payment intent seed data upserted successfully.")
+        print("Payment intent seed data upserted successfully (3 intents).")
     except SQLAlchemyError as exc:
         db.rollback()
         raise RuntimeError("Failed to seed payment intent data. Ensure migrations are applied first.") from exc

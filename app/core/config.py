@@ -4,21 +4,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "fastapi-microservice"
-    environment: str = "development"
-    debug: bool = True
-    database_url: str = "sqlite:///./fastapi_microservice.db"
-    database_schema: str = "migros_store"
-    log_level: str = "INFO"
-    jwt_secret_key: str = "change-me"
-    jwt_access_token_expire_minutes: int = 60
-    api_request_logging_enabled: bool = True
-    api_request_log_queue_size: int = 1000
-    api_request_log_body_max_length: int = 4000
-    cors_origins: str = "http://127.0.0.1:3000,http://localhost:3000"
-    cors_allow_credentials: bool = True
-    cors_allow_methods: str = "*"
-    cors_allow_headers: str = "*"
+    app_name: str
+    environment: str
+    debug: bool
+    database_url: str
+    database_schema: str
+    log_level: str
+    jwt_secret_key: str
+    jwt_access_token_expire_minutes: int
+    api_request_logging_enabled: bool
+    api_request_log_queue_size: int
+    api_request_log_body_max_length: int
+    cors_origins: str
+    cors_allow_credentials: bool
+    cors_allow_methods: str
+    cors_allow_headers: str
+    assistant_llm_provider: str
+    assistant_ollama_base_url: str
+    assistant_ollama_model: str
+    assistant_ollama_timeout_seconds: int
 
     model_config = SettingsConfigDict(
         env_prefix="APP_",
