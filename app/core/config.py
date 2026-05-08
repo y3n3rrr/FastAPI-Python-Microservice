@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     api_request_logging_enabled: bool = True
     api_request_log_queue_size: int = 1000
     api_request_log_body_max_length: int = 4000
+    cors_origins: str = "http://127.0.0.1:3000,http://localhost:3000"
+    cors_allow_credentials: bool = True
+    cors_allow_methods: str = "*"
+    cors_allow_headers: str = "*"
 
     model_config = SettingsConfigDict(
         env_prefix="APP_",
@@ -22,6 +26,22 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    @staticmethod
+    def _split_csv(value: str) -> list[str]:
+        return [item.strip() for item in value.split(",") if item.strip()]
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return self._split_csv(self.cors_origins)
+
+    @property
+    def cors_allow_methods_list(self) -> list[str]:
+        return self._split_csv(self.cors_allow_methods)
+
+    @property
+    def cors_allow_headers_list(self) -> list[str]:
+        return self._split_csv(self.cors_allow_headers)
 
 
 @lru_cache
