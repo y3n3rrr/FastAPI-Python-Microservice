@@ -1,3 +1,4 @@
+from app.repositories.assistant import ChatRepository
 from app.repositories.cart import CartItemRepository, CartRepository
 from app.repositories.catalog import (
     BrandRepository,
@@ -8,11 +9,12 @@ from app.repositories.catalog import (
     ProductVariantRepository,
 )
 from app.repositories.order import OrderItemRepository, OrderRepository, OrderStatusHistoryRepository
-from app.repositories.payment import UserPaymentMethodRepository
+from app.repositories.payment import PaymentIntentRepository, UserPaymentMethodRepository
 from app.repositories.user_repository import UserRepository
 
 __all__ = [
     "UserRepository",
+    "ChatRepository",
     "CartRepository",
     "CartItemRepository",
     "BrandRepository",
@@ -25,4 +27,5 @@ __all__ = [
     "OrderItemRepository",
     "OrderStatusHistoryRepository",
     "UserPaymentMethodRepository",
+    "PaymentIntentRepository",
 ]
