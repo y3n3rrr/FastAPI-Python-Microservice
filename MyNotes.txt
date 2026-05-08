@@ -1,0 +1,12 @@
+for a new entity integration flow;
+
+1. Create Pydantic schemas for catalog
+2. Create catalog repositories
+3. Create catalog services
+4. Create catalog API routes
+5. Register routes in main app
+6. Add seed data
+7. Add tests
+
+update fastapi-microservice.postman_collection
+with new routes 

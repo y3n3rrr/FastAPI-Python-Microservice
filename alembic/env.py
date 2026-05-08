@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import engine_from_config, pool, text
+
+from app.core.config import get_settings
+from app.db.base import Base
+from app.entities.assistant import chat_message, chat_session  # noqa: F401
+from app.entities import user  # noqa: F401
+from app.entities.cart import cart, cart_item  # noqa: F401
+from app.entities.catalog import brand, category, inventory, product, product_image, product_variant  # noqa: F401
+from app.entities.order import order, order_item, order_status_history  # noqa: F401
+from app.entities.payment import payment_intent, user_payment_method  # noqa: F401
+
+config = context.config
+settings = get_settings()
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+config.set_main_option("sqlalchemy.url", settings.database_url)
+
+
+def run_migrations_offline() -> None:
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        include_schemas=not settings.database_url.startswith("sqlite"),
+        version_table_schema=None if settings.database_url.startswith("sqlite") else settings.database_schema,
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        if not settings.database_url.startswith("sqlite"):
+            escaped_schema = settings.database_schema.replace('"', '""')
+            connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{escaped_schema}"'))
+            connection.commit()
+
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_schemas=not settings.database_url.startswith("sqlite"),
+            version_table_schema=None if settings.database_url.startswith("sqlite") else settings.database_schema,
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

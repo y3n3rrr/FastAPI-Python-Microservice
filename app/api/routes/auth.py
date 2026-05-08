@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
+from app.entities.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.schemas.user import UserCreate, UserRead
@@ -21,7 +22,7 @@ def get_registration_service(db: Session = Depends(get_db_session)) -> UserServi
 
 
 @router.post("/register", response_model=UserRead, status_code=201)
-def register(payload: UserCreate, service: UserService = Depends(get_registration_service)) -> UserRead:
+def register(payload: UserCreate, service: UserService = Depends(get_registration_service)) -> User:
     return service.create_user(payload)
 
 

@@ -108,7 +108,7 @@ APP_DEBUG=true
 APP_APP_NAME=FastAPI Microservice
 APP_LOG_LEVEL=INFO
 APP_DATABASE_URL=postgresql://user:password@localhost:5432/microservice_db
-APP_DATABASE_SCHEMA=bookstore
+APP_DATABASE_SCHEMA=migros_store
 APP_JWT_SECRET_KEY=your-secret-key-here-change-in-production
 APP_JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
 APP_API_REQUEST_LOGGING_ENABLED=true
@@ -132,6 +132,60 @@ Run migration scripts (if available in `scripts/sql/`):
 ```bash
 psql -U user -d microservice_db -f scripts/sql/init.sql
 ```
+
+### Migration Helpers (PowerShell)
+
+Use the helper script for code-first Alembic migrations:
+
+```powershell
+# Apply latest migrations
+.\scripts\migrate.ps1 up
+
+# Create migration file
+.\scripts\migrate.ps1 new "create orders table"
+
+# Create migration with model diff
+.\scripts\migrate.ps1 new "add orders status" --autogenerate
+
+# Roll back one revision
+.\scripts\migrate.ps1 down
+
+# Show migration status/history
+.\scripts\migrate.ps1 current
+.\scripts\migrate.ps1 history
+```
+
+### Seed Catalog Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_catalog.py
+```
+
+The script is idempotent, so running it multiple times updates seed rows instead of creating duplicates.
+
+### Seed Cart Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_cart.py
+```
+
+Run this after catalog seed data, because Cart seed references an existing `product_variant`.
+
+### Seed Payment Method Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_payment_method.py
+```
+
+Run this after user data is available. The script creates a fallback user `id=1` when needed.
+
+### Seed Payment Intent Data
+
+```powershell
+.\.venv\Scripts\python.exe scripts\seed_payment_intent.py
+```
+
+Run this after payment method/order migrations are applied. The script upserts user, payment method, catalog, order, and linked payment intent data.
 
 ## Running the Application
 
