@@ -1,20 +1,32 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.entities.catalog.product import Product
-from app.entities.catalog.product_variant import ProductVariant
 from app.entities.assistant.chat_message import ChatMessage
 from app.entities.assistant.chat_session import ChatSession
-from app.entities.order.order import Order
-from app.entities.payment.payment_intent import PaymentIntent
+from app.repositories.cart.cart_item_repository import CartItemRepository
+from app.repositories.cart.cart_repository import CartRepository
+from app.repositories.catalog.product_repository import ProductRepository
+from app.repositories.catalog.product_variant_repository import ProductVariantRepository
+from app.repositories.order.order_repository import OrderRepository
+from app.repositories.order.order_status_history_repository import OrderStatusHistoryRepository
+from app.repositories.payment.user_payment_method_repository import UserPaymentMethodRepository
 from app.repositories.assistant.chat_repository import ChatRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.assistant.chat import ChatRequest
+from app.services.assistant.agents import (
+    AnswerAgent,
+    AssistantToolRepositories,
+    AssistantToolset,
+    OrchestratorAgent,
+    PlannerAgent,
+    RetrieverAgent,
+    ToolRegistry,
+    ValidationAgent,
+)
 from app.services.assistant.llm_client import LLMClient, LLMResponse
 
 
@@ -42,12 +54,13 @@ class ChatService:
         self.db.flush()
 
         conversation_context = self._build_conversation_context(session.id)
-        database_context = self._build_database_context(payload.message, payload.user_id)
-        llm_response: LLMResponse = self.llm_client.generate_answer(
-            user_prompt=payload.message,
-            database_context=database_context,
+        orchestrator, tool_registry = self._build_orchestrator(user_id=payload.user_id)
+        answer_text = orchestrator.run(
+            user_message=payload.message,
             conversation_context=conversation_context,
+            tool_registry=tool_registry,
         )
+        llm_response: LLMResponse = LLMResponse(answer=answer_text, model=self._assistant_model_name())
         assistant_message = ChatMessage(
             session_id=session.id,
             role="assistant",
@@ -86,6 +99,13 @@ class ChatService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
         return self.repository.list_messages_by_session(session_id)
 
+    def list_available_tools(self, *, user_id: int) -> list[dict[str, Any]]:
+        user = self.user_repository.get(user_id)
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        _, tool_registry = self._build_orchestrator(user_id=user_id)
+        return tool_registry.list_for_planner()
+
     def _build_conversation_context(self, session_id: int) -> str:
         messages = self.repository.list_messages_by_session(session_id)
         recent = messages[-8:]
@@ -94,76 +114,28 @@ class ChatService:
         lines = [f"{item.role}: {item.content}" for item in recent]
         return "\n".join(lines)
 
-    def _build_database_context(self, question: str, user_id: int) -> str:
-        lower = question.lower()
-        lines: list[str] = []
-
-        total_products = self.db.scalar(select(func.count()).select_from(Product)) or 0
-        total_variants = self.db.scalar(select(func.count()).select_from(ProductVariant)) or 0
-        lines.append(f"Catalog totals: products={total_products}, variants={total_variants}.")
-
-        user_order_count = self.db.scalar(
-            select(func.count()).select_from(Order).where(Order.user_id == user_id)
-        ) or 0
-        lines.append(f"User {user_id} total orders: {user_order_count}.")
-
-        last_orders = list(
-            self.db.scalars(
-                select(Order)
-                .where(Order.user_id == user_id)
-                .order_by(Order.created_at.desc(), Order.id.desc())
-                .limit(5)
-            )
+    def _build_orchestrator(self, *, user_id: int) -> tuple[OrchestratorAgent, ToolRegistry]:
+        repositories = AssistantToolRepositories(
+            product_repository=ProductRepository(self.db),
+            product_variant_repository=ProductVariantRepository(self.db),
+            cart_repository=CartRepository(self.db),
+            cart_item_repository=CartItemRepository(self.db),
+            order_repository=OrderRepository(self.db),
+            order_status_history_repository=OrderStatusHistoryRepository(self.db),
+            user_payment_method_repository=UserPaymentMethodRepository(self.db),
         )
-        if last_orders:
-            order_bits = [
-                f"(id={order.id}, status={order.status}, total={self._fmt_amount(order.total_amount)} {order.currency})"
-                for order in last_orders
-            ]
-            lines.append("Recent user orders: " + ", ".join(order_bits))
-        else:
-            lines.append("Recent user orders: none.")
-
-        last_intents = list(
-            self.db.scalars(
-                select(PaymentIntent)
-                .where(PaymentIntent.user_id == user_id)
-                .order_by(PaymentIntent.created_at.desc(), PaymentIntent.id.desc())
-                .limit(5)
-            )
+        toolset = AssistantToolset(user_id=user_id, repositories=repositories)
+        tool_registry = ToolRegistry(toolset.to_specs())
+        orchestrator = OrchestratorAgent(
+            planner=PlannerAgent(self.llm_client),
+            retriever=RetrieverAgent(),
+            validator=ValidationAgent(),
+            answerer=AnswerAgent(self.llm_client),
         )
-        if last_intents:
-            intent_bits = [
-                (
-                    f"(id={intent.id}, status={intent.status}, amount={self._fmt_amount(intent.amount)} "
-                    f"{intent.currency}, provider={intent.provider}, order_id={intent.order_id})"
-                )
-                for intent in last_intents
-            ]
-            lines.append("Recent payment intents: " + ", ".join(intent_bits))
-        else:
-            lines.append("Recent payment intents: none.")
+        return orchestrator, tool_registry
 
-        if any(keyword in lower for keyword in ("product", "catalog", "item", "price", "variant")):
-            recent_variants = list(
-                self.db.scalars(
-                    select(ProductVariant)
-                    .where(ProductVariant.is_active.is_(True))
-                    .order_by(ProductVariant.updated_at.desc(), ProductVariant.id.desc())
-                    .limit(10)
-                )
-            )
-            if recent_variants:
-                variant_bits = [
-                    f"(id={v.id}, sku={v.sku}, name={v.name}, price={self._fmt_amount(v.price)} {v.currency})"
-                    for v in recent_variants
-                ]
-                lines.append("Active variant sample: " + ", ".join(variant_bits))
-
-        return "\n".join(lines)
-
-    @staticmethod
-    def _fmt_amount(value: Decimal | None) -> str:
-        if value is None:
-            return "0.00"
-        return f"{value:.2f}"
+    def _assistant_model_name(self) -> str:
+        provider = self.llm_client.settings.assistant_llm_provider.strip().lower()
+        if provider == "ollama":
+            return self.llm_client.settings.assistant_ollama_model
+        return "agentic-mock-v1"
