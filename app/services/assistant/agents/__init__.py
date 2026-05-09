@@ -4,6 +4,7 @@ from app.services.assistant.agents.models import (
     ToolExecutionResult,
     ValidationOutput,
 )
+from app.services.assistant.agents.contracts import AssistantAgent
 from app.services.assistant.agents.tool_registry import ToolRegistry, ToolSpec
 from app.services.assistant.agents.tools import AssistantToolRepositories, AssistantToolset
 from app.services.assistant.agents.workflow import (
@@ -16,6 +17,7 @@ from app.services.assistant.agents.workflow import (
 
 __all__ = [
     "AnswerAgent",
+    "AssistantAgent",
     "AssistantToolRepositories",
     "AssistantToolset",
     "OrchestratorAgent",

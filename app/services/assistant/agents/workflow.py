@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, TypedDict, cast
 
+from langgraph.graph import END, START, StateGraph
+from app.services.assistant.agents.contracts import AssistantAgent
 from app.services.assistant.agents.models import (
     PlannerOutput,
     PlannerStep,
@@ -11,6 +13,16 @@ from app.services.assistant.agents.models import (
 )
 from app.services.assistant.agents.tool_registry import ToolRegistry
 from app.services.assistant.llm_client import LLMClient
+
+
+class AgentState(TypedDict, total=False):
+    user_message: str
+    conversation_context: str
+    tool_registry: ToolRegistry
+    plan: PlannerOutput
+    retrieval_results: list[ToolExecutionResult]
+    validation: ValidationOutput
+    answer: str
 
 
 class OrchestratorAgent:
@@ -26,25 +38,50 @@ class OrchestratorAgent:
         self.retriever = retriever
         self.validator = validator
         self.answerer = answerer
+        self._graph = self._build_graph()
 
     def run(self, *, user_message: str, conversation_context: str, tool_registry: ToolRegistry) -> str:
-        plan = self.planner.create_plan(
+        state: AgentState = {
+            "user_message": user_message,
+            "conversation_context": conversation_context,
+            "tool_registry": tool_registry,
+        }
+        final_state = cast(AgentState, self._graph.invoke(state))
+        return str(final_state.get("answer", ""))
+
+    def _build_graph(self):
+        graph = StateGraph(AgentState)
+        graph.add_node(self.planner.name, self.planner.run)
+        graph.add_node(self.retriever.name, self.retriever.run)
+        graph.add_node(self.validator.name, self.validator.run)
+        graph.add_node(self.answerer.name, self.answerer.run)
+
+        graph.add_edge(START, self.planner.name)
+        graph.add_edge(self.planner.name, self.retriever.name)
+        graph.add_edge(self.retriever.name, self.validator.name)
+        graph.add_edge(self.validator.name, self.answerer.name)
+        graph.add_edge(self.answerer.name, END)
+        return graph.compile()
+
+
+class PlannerAgent(AssistantAgent):
+    name = "planner"
+
+    def __init__(self, llm_client: LLMClient) -> None:
+        self.llm_client = llm_client
+
+    def run(self, state: dict[str, Any]) -> dict[str, Any]:
+        user_message = str(state.get("user_message", ""))
+        conversation_context = str(state.get("conversation_context", ""))
+        tool_registry = cast(ToolRegistry, state.get("tool_registry"))
+        plan = self.create_plan(
             user_message=user_message,
             conversation_context=conversation_context,
             tool_registry=tool_registry,
         )
-        retrieval_results = self.retriever.execute(plan=plan, tool_registry=tool_registry)
-        validation = self.validator.validate(plan=plan, results=retrieval_results)
-        return self.answerer.build_answer(
-            user_message=user_message,
-            plan=plan,
-            validation=validation,
-        )
-
-
-class PlannerAgent:
-    def __init__(self, llm_client: LLMClient) -> None:
-        self.llm_client = llm_client
+        next_state = dict(state)
+        next_state["plan"] = plan
+        return next_state
 
     def create_plan(
         self,
@@ -64,7 +101,17 @@ class PlannerAgent:
         return _heuristic_plan(user_message)
 
 
-class RetrieverAgent:
+class RetrieverAgent(AssistantAgent):
+    name = "retriever"
+
+    def run(self, state: dict[str, Any]) -> dict[str, Any]:
+        plan = cast(PlannerOutput, state.get("plan"))
+        tool_registry = cast(ToolRegistry, state.get("tool_registry"))
+        retrieval_results = self.execute(plan=plan, tool_registry=tool_registry)
+        next_state = dict(state)
+        next_state["retrieval_results"] = retrieval_results
+        return next_state
+
     def execute(self, *, plan: PlannerOutput, tool_registry: ToolRegistry) -> list[ToolExecutionResult]:
         results: list[ToolExecutionResult] = []
         for step in plan.steps:
@@ -93,7 +140,17 @@ class RetrieverAgent:
         return results
 
 
-class ValidationAgent:
+class ValidationAgent(AssistantAgent):
+    name = "validator"
+
+    def run(self, state: dict[str, Any]) -> dict[str, Any]:
+        plan = cast(PlannerOutput, state.get("plan"))
+        retrieval_results = cast(list[ToolExecutionResult], state.get("retrieval_results", []))
+        validation = self.validate(plan=plan, results=retrieval_results)
+        next_state = dict(state)
+        next_state["validation"] = validation
+        return next_state
+
     def validate(self, *, plan: PlannerOutput, results: list[ToolExecutionResult]) -> ValidationOutput:
         issues: list[str] = []
         for index, result in enumerate(results):
@@ -141,9 +198,20 @@ class ValidationAgent:
                     issues.append("catalog.get_product_by_id returned non-active or invalid product.")
 
 
-class AnswerAgent:
+class AnswerAgent(AssistantAgent):
+    name = "answerer"
+
     def __init__(self, llm_client: LLMClient) -> None:
         self.llm_client = llm_client
+
+    def run(self, state: dict[str, Any]) -> dict[str, Any]:
+        user_message = str(state.get("user_message", ""))
+        plan = cast(PlannerOutput, state.get("plan"))
+        validation = cast(ValidationOutput, state.get("validation"))
+        answer = self.build_answer(user_message=user_message, plan=plan, validation=validation)
+        next_state = dict(state)
+        next_state["answer"] = answer
+        return next_state
 
     def build_answer(self, *, user_message: str, plan: PlannerOutput, validation: ValidationOutput) -> str:
         llm_answer = self.llm_client.generate_answer_from_tool_results(
