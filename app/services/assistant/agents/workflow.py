@@ -90,6 +90,10 @@ class PlannerAgent(AssistantAgent):
         conversation_context: str,
         tool_registry: ToolRegistry,
     ) -> PlannerOutput:
+        # Deterministic shortcut for price-ranking requests (e.g. "cheapest milk").
+        if _is_price_ranking_query(user_message):
+            return _heuristic_plan(user_message)
+
         llm_plan = self.llm_client.generate_tool_plan(
             user_prompt=user_message,
             conversation_context=conversation_context,
@@ -97,7 +101,9 @@ class PlannerAgent(AssistantAgent):
         )
         parsed = _parse_plan(llm_plan, tool_registry) if llm_plan is not None else None
         if parsed is not None and parsed.steps:
-            return parsed
+            sanitized = _sanitize_plan(parsed)
+            if sanitized.steps:
+                return sanitized
         return _heuristic_plan(user_message)
 
 
@@ -214,6 +220,10 @@ class AnswerAgent(AssistantAgent):
         return next_state
 
     def build_answer(self, *, user_message: str, plan: PlannerOutput, validation: ValidationOutput) -> str:
+        deterministic = _build_price_ranking_answer(user_message=user_message, results=validation.results)
+        if deterministic is not None:
+            return deterministic
+
         llm_answer = self.llm_client.generate_answer_from_tool_results(
             user_prompt=user_message,
             plan=plan.model_dump(),
@@ -364,6 +374,24 @@ def _parse_plan(data: dict[str, Any] | None, tool_registry: ToolRegistry) -> Pla
     return PlannerOutput(intent=plan.intent or "unknown", steps=normalized_steps)
 
 
+def _sanitize_plan(plan: PlannerOutput) -> PlannerOutput:
+    required_fields: dict[str, tuple[str, ...]] = {
+        "catalog.get_product_by_id": ("product_id",),
+        "cart.add_item": ("product_variant_id",),
+        "orders.get_order_status": ("order_id",),
+    }
+    cleaned: list[PlannerStep] = []
+    for step in plan.steps:
+        if not isinstance(step.arguments, dict):
+            continue
+        needed = required_fields.get(step.tool, ())
+        missing_required = any(step.arguments.get(field) in (None, "") for field in needed)
+        if missing_required:
+            continue
+        cleaned.append(step)
+    return PlannerOutput(intent=plan.intent, steps=cleaned)
+
+
 def _heuristic_plan(user_message: str) -> PlannerOutput:
     lower = user_message.lower()
 
@@ -433,7 +461,23 @@ def _heuristic_plan(user_message: str) -> PlannerOutput:
             steps=[PlannerStep(tool="payments.get_default_payment_method", arguments={})],
         )
 
-    if any(token in lower for token in ("product", "catalog", "item", "price", "buy", "need", "find", "search")):
+    if any(
+        token in lower
+        for token in (
+            "product",
+            "catalog",
+            "item",
+            "price",
+            "buy",
+            "need",
+            "find",
+            "search",
+            "cheapest",
+            "lowest",
+            "least expensive",
+            "minimum price",
+        )
+    ):
         return PlannerOutput(
             intent="product_search",
             steps=[
@@ -581,5 +625,48 @@ def _strip_filter_phrases(text: str) -> str:
     )
     cleaned = re.sub(r"\b(usd|eur|try|tl)\b", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\b(price|prices)\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(what is|show me|here)\b", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(cheapest|lowest|least expensive|minimum)\b", "", cleaned, flags=re.IGNORECASE)
     cleaned = cleaned.strip(" ,.-")
     return cleaned
+
+
+def _is_price_ranking_query(message: str) -> bool:
+    lower = message.lower()
+    return any(token in lower for token in ("cheapest", "lowest", "least expensive", "minimum price"))
+
+
+def _build_price_ranking_answer(*, user_message: str, results: list[ToolExecutionResult]) -> str | None:
+    if not _is_price_ranking_query(user_message):
+        return None
+
+    cheapest: dict[str, Any] | None = None
+    for result in results:
+        if not result.success or result.tool != "catalog.search_products":
+            continue
+        data = result.data if isinstance(result.data, dict) else {}
+        items = data.get("items")
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            price = _as_float(item.get("price"))
+            if price is None:
+                continue
+            if cheapest is None or price < _as_float(cheapest.get("price")):  # type: ignore[arg-type]
+                cheapest = item
+
+    if cheapest is None:
+        return "I could not find a matching product to rank by price."
+
+    product = cheapest.get("product") if isinstance(cheapest.get("product"), dict) else {}
+    product_name = product.get("name") or cheapest.get("name") or "Unknown"
+    sku = cheapest.get("sku") or "-"
+    price = cheapest.get("price")
+    currency = cheapest.get("currency") or "USD"
+    available_units = cheapest.get("available_units")
+    return (
+        f"The cheapest matching product is {product_name} ({sku}) at {price} {currency}. "
+        f"Available units: {available_units}."
+    )
