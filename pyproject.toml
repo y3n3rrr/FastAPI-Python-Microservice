@@ -11,6 +11,7 @@ dependencies = [
     "pydantic-settings",
     "email-validator",
     "uvicorn",
+    "langgraph",
 ]
 
 [build-system]
