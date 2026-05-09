@@ -94,8 +94,15 @@ def seed_cart() -> None:
     try:
         user = _get_or_create_user_1(db)
 
-        variant = db.scalar(select(ProductVariant).order_by(ProductVariant.id))
-        if variant is None:
+        variants = list(
+            db.scalars(
+                select(ProductVariant)
+                .where(ProductVariant.is_active.is_(True))
+                .order_by(ProductVariant.id)
+                .limit(8)
+            )
+        )
+        if not variants:
             raise RuntimeError(
                 "No product variant found. Run scripts/seed_catalog.py first to create catalog seed data."
             )
@@ -104,21 +111,22 @@ def seed_cart() -> None:
             db,
             user_id=user.id,
             status="active",
-            currency=variant.currency,
+            currency=variants[0].currency,
         )
 
-        _upsert_cart_item(
-            db,
-            cart_id=cart.id,
-            product_variant_id=variant.id,
-            quantity=2,
-            unit_price_snapshot=variant.price,
-            currency=variant.currency,
-            is_selected=True,
-        )
+        for index, variant in enumerate(variants, start=1):
+            _upsert_cart_item(
+                db,
+                cart_id=cart.id,
+                product_variant_id=variant.id,
+                quantity=(index % 4) + 1,
+                unit_price_snapshot=variant.price,
+                currency=variant.currency,
+                is_selected=(index % 3 != 0),
+            )
 
         db.commit()
-        print("Cart seed data upserted successfully.")
+        print(f"Cart seed data upserted successfully ({len(variants)} cart items).")
     except SQLAlchemyError as exc:
         db.rollback()
         raise RuntimeError("Failed to seed cart data. Ensure cart migrations are applied first.") from exc

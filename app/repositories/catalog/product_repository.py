@@ -1,9 +1,11 @@
 import builtins
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Session
 
 from app.entities.catalog.product import Product
+from app.entities.catalog.product_variant import ProductVariant
 
 
 class ProductRepository:
@@ -15,6 +17,21 @@ class ProductRepository:
 
     def get(self, product_id: int) -> Product | None:
         return self.db.get(Product, product_id)
+
+    def get_active_with_relations(self, product_id: int) -> Product | None:
+        stmt = (
+            select(Product)
+            .where(
+                Product.id == product_id,
+                Product.is_active.is_(True),
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.brand),
+                joinedload(Product.variants.of_type(ProductVariant)).joinedload(ProductVariant.inventory),
+            )
+        )
+        return self.db.execute(stmt).scalars().unique().first()
 
     def get_by_slug(self, slug: str) -> Product | None:
         return self.db.scalar(select(Product).where(Product.slug == slug))

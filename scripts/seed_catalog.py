@@ -103,136 +103,153 @@ def seed_catalog() -> None:
     db = session_factory()
 
     try:
-        # Brands
-        migros = _upsert_brand(
-            db,
-            slug="migros",
-            name="Migros",
-            description="Migros private-label and curated brand portfolio.",
-            logo_url="https://example.com/brands/migros.png",
-            is_active=True,
-        )
-        pinar = _upsert_brand(
-            db,
-            slug="pinar",
-            name="Pinar",
-            description="Dairy and packaged food products.",
-            logo_url="https://example.com/brands/pinar.png",
-            is_active=True,
-        )
+        # 12 brands
+        brand_seeds = [
+            ("migros", "Migros"),
+            ("pinar", "Pinar"),
+            ("ulker", "Ulker"),
+            ("eti", "Eti"),
+            ("dimes", "Dimes"),
+            ("sutas", "Sutas"),
+            ("ayaydin", "Ayaydin"),
+            ("superfresh", "SuperFresh"),
+            ("tadim", "Tadim"),
+            ("komili", "Komili"),
+            ("ipek", "Ipek"),
+            ("dogadan", "Dogadan"),
+        ]
+        brands_by_slug: dict[str, Brand] = {}
+        for slug, name in brand_seeds:
+            brands_by_slug[slug] = _upsert_brand(
+                db,
+                slug=slug,
+                name=name,
+                description=f"{name} branded grocery products.",
+                logo_url=f"https://example.com/brands/{slug}.png",
+                is_active=True,
+            )
 
-        # Categories
-        beverages = _upsert_category(
-            db,
-            slug="beverages",
-            parent_id=None,
-            name="Beverages",
-            description="Soft drinks, juices, and water.",
-            is_active=True,
-        )
-        dairy = _upsert_category(
-            db,
-            slug="dairy",
-            parent_id=None,
-            name="Dairy",
-            description="Milk, cheese, and yogurt products.",
-            is_active=True,
-        )
-        fruit_juice = _upsert_category(
-            db,
-            slug="fruit-juice",
-            parent_id=beverages.id,
-            name="Fruit Juice",
-            description="Single and mixed fruit juices.",
-            is_active=True,
-        )
+        # 24 categories (8 parent + 16 child)
+        parent_categories = [
+            ("beverages", "Beverages"),
+            ("dairy", "Dairy"),
+            ("snacks", "Snacks"),
+            ("frozen-food", "Frozen Food"),
+            ("breakfast", "Breakfast"),
+            ("household", "Household"),
+            ("bakery", "Bakery"),
+            ("personal-care", "Personal Care"),
+        ]
+        categories_by_slug: dict[str, Category] = {}
+        for slug, name in parent_categories:
+            categories_by_slug[slug] = _upsert_category(
+                db,
+                slug=slug,
+                parent_id=None,
+                name=name,
+                description=f"{name} category.",
+                is_active=True,
+            )
 
-        # Products
-        orange_juice = _upsert_product(
-            db,
-            slug="migros-orange-juice-1l",
-            category_id=fruit_juice.id,
-            brand_id=migros.id,
-            name="Migros Orange Juice 1L",
-            description="100% orange juice, no added sugar.",
-            is_active=True,
-        )
-        whole_milk = _upsert_product(
-            db,
-            slug="pinar-whole-milk-1l",
-            category_id=dairy.id,
-            brand_id=pinar.id,
-            name="Pinar Whole Milk 1L",
-            description="Pasteurized whole milk.",
-            is_active=True,
-        )
+        child_categories = [
+            ("fruit-juice", "Fruit Juice", "beverages"),
+            ("sparkling-water", "Sparkling Water", "beverages"),
+            ("milk", "Milk", "dairy"),
+            ("yogurt", "Yogurt", "dairy"),
+            ("chips", "Chips", "snacks"),
+            ("nuts", "Nuts", "snacks"),
+            ("frozen-vegetables", "Frozen Vegetables", "frozen-food"),
+            ("frozen-pizza", "Frozen Pizza", "frozen-food"),
+            ("cereal", "Cereal", "breakfast"),
+            ("jams", "Jams", "breakfast"),
+            ("detergent", "Detergent", "household"),
+            ("cleaners", "Cleaners", "household"),
+            ("bread", "Bread", "bakery"),
+            ("pastry", "Pastry", "bakery"),
+            ("shampoo", "Shampoo", "personal-care"),
+            ("soap", "Soap", "personal-care"),
+        ]
+        leaf_category_slugs: list[str] = []
+        for slug, name, parent_slug in child_categories:
+            categories_by_slug[slug] = _upsert_category(
+                db,
+                slug=slug,
+                parent_id=categories_by_slug[parent_slug].id,
+                name=name,
+                description=f"{name} sub-category.",
+                is_active=True,
+            )
+            leaf_category_slugs.append(slug)
 
-        # Variants
-        orange_juice_variant = _upsert_variant(
-            db,
-            sku="MIG-OJ-1L",
-            product_id=orange_juice.id,
-            barcode="8690504012345",
-            name="1 Liter",
-            color=None,
-            size="1L",
-            price=Decimal("59.90"),
-            compare_at_price=Decimal("64.90"),
-            currency="TRY",
-            weight_kg=Decimal("1.050"),
-            is_active=True,
-        )
-        milk_variant = _upsert_variant(
-            db,
-            sku="PIN-MILK-1L",
-            product_id=whole_milk.id,
-            barcode="8690565012345",
-            name="1 Liter",
-            color=None,
-            size="1L",
-            price=Decimal("44.90"),
-            compare_at_price=Decimal("47.90"),
-            currency="TRY",
-            weight_kg=Decimal("1.040"),
-            is_active=True,
-        )
+        brand_slugs = list(brands_by_slug.keys())
+        products_by_slug: dict[str, Product] = {}
 
-        # Images
-        _upsert_image(
-            db,
-            product_id=orange_juice.id,
-            image_url="https://example.com/products/migros-orange-juice-1l/front.jpg",
-            alt_text="Migros Orange Juice 1L front view",
-            sort_order=0,
-            is_primary=True,
-        )
-        _upsert_image(
-            db,
-            product_id=whole_milk.id,
-            image_url="https://example.com/products/pinar-whole-milk-1l/front.jpg",
-            alt_text="Pinar Whole Milk 1L front view",
-            sort_order=0,
-            is_primary=True,
-        )
+        # 60 products
+        for i in range(1, 61):
+            brand_slug = brand_slugs[(i - 1) % len(brand_slugs)]
+            category_slug = leaf_category_slugs[(i - 1) % len(leaf_category_slugs)]
+            product_slug = f"{brand_slug}-product-{i:03d}"
+            product = _upsert_product(
+                db,
+                slug=product_slug,
+                category_id=categories_by_slug[category_slug].id,
+                brand_id=brands_by_slug[brand_slug].id,
+                name=f"{brands_by_slug[brand_slug].name} {categories_by_slug[category_slug].name} Item {i:03d}",
+                description=f"Seeded product #{i:03d} for catalog testing.",
+                is_active=True,
+            )
+            products_by_slug[product_slug] = product
 
-        # Inventory
-        _upsert_inventory(
-            db,
-            variant_id=orange_juice_variant.id,
-            quantity=180,
-            reserved_quantity=12,
-            reorder_level=40,
-        )
-        _upsert_inventory(
-            db,
-            variant_id=milk_variant.id,
-            quantity=260,
-            reserved_quantity=18,
-            reorder_level=60,
-        )
+            _upsert_image(
+                db,
+                product_id=product.id,
+                image_url=f"https://example.com/products/{product_slug}/front.jpg",
+                alt_text=f"{product.name} front view",
+                sort_order=0,
+                is_primary=True,
+            )
+
+        # 120 variants + 120 inventories (2 variants per product)
+        variant_counter = 0
+        for idx, (product_slug, product) in enumerate(products_by_slug.items(), start=1):
+            for pack in ("S", "L"):
+                variant_counter += 1
+                sku = f"SKU-{idx:03d}-{pack}"
+                base_price = Decimal("19.90") + Decimal(idx % 17) * Decimal("2.10")
+                price = base_price if pack == "S" else base_price + Decimal("9.00")
+                compare_at_price = price + Decimal("4.00")
+                size = "500ml" if pack == "S" else "1L"
+                weight = Decimal("0.550") if pack == "S" else Decimal("1.050")
+                barcode = f"8699{variant_counter:08d}"
+
+                variant = _upsert_variant(
+                    db,
+                    sku=sku,
+                    product_id=product.id,
+                    barcode=barcode,
+                    name=f"{size} Pack",
+                    color=None,
+                    size=size,
+                    price=price,
+                    compare_at_price=compare_at_price,
+                    currency="TRY",
+                    weight_kg=weight,
+                    is_active=True,
+                )
+
+                quantity = 80 + (variant_counter % 140)
+                reserved = variant_counter % 10
+                reorder = 20 + (variant_counter % 15)
+                _upsert_inventory(
+                    db,
+                    variant_id=variant.id,
+                    quantity=quantity,
+                    reserved_quantity=reserved,
+                    reorder_level=reorder,
+                )
 
         db.commit()
-        print("Catalog seed data upserted successfully.")
+        print("Catalog seed data upserted successfully (60 products, 120 variants, 120 inventories).")
     except SQLAlchemyError as exc:
         db.rollback()
         raise RuntimeError("Failed to seed catalog data. Ensure catalog migrations are applied first.") from exc

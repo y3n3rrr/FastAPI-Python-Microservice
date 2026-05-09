@@ -20,6 +20,15 @@ class OrderStatusHistoryRepository:
         stmt = select(OrderStatusHistory).where(OrderStatusHistory.order_id == order_id).order_by(OrderStatusHistory.id)
         return list(self.db.scalars(stmt))
 
+    def get_latest_by_order(self, order_id: int) -> OrderStatusHistory | None:
+        stmt = (
+            select(OrderStatusHistory)
+            .where(OrderStatusHistory.order_id == order_id)
+            .order_by(OrderStatusHistory.created_at.desc(), OrderStatusHistory.id.desc())
+            .limit(1)
+        )
+        return self.db.scalar(stmt)
+
     def add(self, history: OrderStatusHistory) -> OrderStatusHistory:
         self.db.add(history)
         return history

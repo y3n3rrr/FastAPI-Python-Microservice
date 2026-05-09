@@ -6,7 +6,7 @@ from app.db.session import get_db_session
 from app.entities.user import User
 from app.repositories.assistant.chat_repository import ChatRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.assistant.chat import ChatMessageRead, ChatRequest, ChatResponse
+from app.schemas.assistant.chat import AssistantToolRead, ChatMessageRead, ChatRequest, ChatResponse
 from app.services.assistant.chat_service import ChatService
 from app.services.assistant.llm_client import LLMClient
 
@@ -36,3 +36,11 @@ def get_session_messages(
     service: ChatService = Depends(get_chat_service),
 ) -> list[ChatMessageRead]:
     return service.list_session_messages(session_id=session_id, user_id=current_user.id)
+
+
+@router.get("/tools", response_model=list[AssistantToolRead])
+def list_tools(
+    current_user: User = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
+) -> list[AssistantToolRead]:
+    return service.list_available_tools(user_id=current_user.id)

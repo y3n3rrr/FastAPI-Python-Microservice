@@ -1,5 +1,10 @@
 {
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportArgumentType": "none",
+    "reportAssignmentType": "none",
+    "reportReturnType": "none"
+  },
   "files.exclude": {
     "**/__pycache__": true,
     "**/.pytest_cache": true,

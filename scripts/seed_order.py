@@ -142,33 +142,46 @@ def seed_order() -> None:
     try:
         user = _get_or_create_user_1(db)
 
-        variant = db.scalar(select(ProductVariant).order_by(ProductVariant.id))
-        if variant is None:
+        variants = list(
+            db.scalars(
+                select(ProductVariant)
+                .where(ProductVariant.is_active.is_(True))
+                .order_by(ProductVariant.id)
+                .limit(10)
+            )
+        )
+        if not variants:
             raise RuntimeError(
                 "No product variant found. Run scripts/seed_catalog.py first to create catalog seed data."
             )
 
-        quantity = 2
-        line_total = (variant.price or Decimal("0.00")) * quantity
+        line_items: list[tuple[ProductVariant, int, Decimal]] = []
+        total_amount = Decimal("0.00")
+        for index, variant in enumerate(variants, start=1):
+            quantity = (index % 3) + 1
+            line_total = (variant.price or Decimal("0.00")) * quantity
+            total_amount += line_total
+            line_items.append((variant, quantity, line_total))
 
         order = _upsert_order(
             db,
             user_id=user.id,
             status="pending",
-            currency=variant.currency,
-            total_amount=line_total,
-            note="Seed order for integration checks.",
+            currency=variants[0].currency,
+            total_amount=total_amount,
+            note="Seed order for integration checks (multi-item).",
         )
 
-        _upsert_order_item(
-            db,
-            order_id=order.id,
-            product_variant_id=variant.id,
-            quantity=quantity,
-            unit_price_snapshot=variant.price,
-            line_total=line_total,
-            currency=variant.currency,
-        )
+        for variant, quantity, line_total in line_items:
+            _upsert_order_item(
+                db,
+                order_id=order.id,
+                product_variant_id=variant.id,
+                quantity=quantity,
+                unit_price_snapshot=variant.price,
+                line_total=line_total,
+                currency=variant.currency,
+            )
 
         _upsert_status_history(
             db,
@@ -180,7 +193,7 @@ def seed_order() -> None:
         )
 
         db.commit()
-        print("Order seed data upserted successfully.")
+        print(f"Order seed data upserted successfully ({len(line_items)} order items).")
     except SQLAlchemyError as exc:
         db.rollback()
         raise RuntimeError("Failed to seed order data. Ensure order migrations are applied first.") from exc

@@ -36,3 +36,9 @@ class ChatResponse(BaseModel):
     session: ChatSessionRead
     user_message: ChatMessageRead
     assistant_message: ChatMessageRead
+
+
+class AssistantToolRead(BaseModel):
+    name: str
+    description: str
+    parameters: dict[str, str]
