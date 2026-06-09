@@ -10,10 +10,12 @@ from app.repositories.catalog import (
 )
 from app.repositories.order import OrderItemRepository, OrderRepository, OrderStatusHistoryRepository
 from app.repositories.payment import PaymentIntentRepository, UserPaymentMethodRepository
+from app.repositories.user_address_repository import UserAddressRepository
 from app.repositories.user_repository import UserRepository
 
 __all__ = [
     "UserRepository",
+    "UserAddressRepository",
     "ChatRepository",
     "CartRepository",
     "CartItemRepository",

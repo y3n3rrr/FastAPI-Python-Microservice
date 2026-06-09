@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Frontend Debug (Next.js)",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/frontend"
+    },
+    {
       "name": "FastAPI Debug",
       "type": "python",
       "request": "launch",
@@ -31,6 +38,15 @@
         "8000"
       ],
       "jinja": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack Debug (FE + API)",
+      "configurations": [
+        "Frontend Debug (Next.js)",
+        "FastAPI Debug"
+      ]
     }
   ]
 }

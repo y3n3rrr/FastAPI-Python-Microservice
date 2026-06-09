@@ -8,7 +8,7 @@ from sqlalchemy import engine_from_config, pool, text
 from app.core.config import get_settings
 from app.db.base import Base
 from app.entities.assistant import chat_message, chat_session  # noqa: F401
-from app.entities import user  # noqa: F401
+from app.entities import user, user_address  # noqa: F401
 from app.entities.cart import cart, cart_item  # noqa: F401
 from app.entities.catalog import brand, category, inventory, product, product_image, product_variant  # noqa: F401
 from app.entities.order import order, order_item, order_status_history  # noqa: F401

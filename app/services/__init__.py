@@ -11,10 +11,12 @@ from app.services.catalog import (
 from app.services.checkout_service import CheckoutService
 from app.services.order import OrderItemService, OrderService, OrderStatusHistoryService
 from app.services.payment import UserPaymentMethodService
+from app.services.user_address_service import UserAddressService
 from app.services.user_service import UserService
 
 __all__ = [
     "UserService",
+    "UserAddressService",
     "ChatService",
     "LLMClient",
     "CheckoutService",

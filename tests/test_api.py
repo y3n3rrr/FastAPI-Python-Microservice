@@ -734,6 +734,117 @@ class ApiTests(unittest.TestCase):
         delete_response = self.client.delete(f"/payment-methods/{payment_method_id}", headers=auth_headers)
         self.assertEqual(delete_response.status_code, 204)
 
+    def test_user_address_crud_flow(self) -> None:
+        unauthorized_response = self.client.get("/user-addresses")
+        self.assertEqual(unauthorized_response.status_code, 401)
+
+        register_response = self.client.post(
+            "/register",
+            json={
+                "name": "Address",
+                "surname": "Tester",
+                "email": "address-tester@example.com",
+                "password": "supersecure",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(register_response.status_code, 201)
+        user_id = register_response.json()["id"]
+
+        login_response = self.client.post(
+            "/login",
+            json={
+                "email": "address-tester@example.com",
+                "password": "supersecure",
+            },
+        )
+        self.assertEqual(login_response.status_code, 200)
+        token = login_response.json()["access_token"]
+        auth_headers = {"Authorization": f"Bearer {token}"}
+
+        create_response = self.client.post(
+            "/user-addresses",
+            json={
+                "user_id": user_id,
+                "label": "Home",
+                "address_type": "shipping",
+                "recipient_name": "Address Tester",
+                "phone_number": "+905551112233",
+                "address_line1": "Ataturk Cd. No: 1",
+                "address_line2": "Daire 5",
+                "city": "Istanbul",
+                "state": "Istanbul",
+                "postal_code": "34000",
+                "country": "Turkey",
+                "delivery_instructions": "Ring the bell.",
+                "is_default": True,
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(create_response.status_code, 201)
+        address_id = create_response.json()["id"]
+
+        list_user_response = self.client.get(f"/user-addresses/users/{user_id}", headers=auth_headers)
+        self.assertEqual(list_user_response.status_code, 200)
+        self.assertTrue(any(item["id"] == address_id for item in list_user_response.json()))
+
+        default_response = self.client.get(f"/user-addresses/users/{user_id}/default", headers=auth_headers)
+        self.assertEqual(default_response.status_code, 200)
+        self.assertEqual(default_response.json()["id"], address_id)
+
+        second_create_response = self.client.post(
+            "/user-addresses",
+            json={
+                "user_id": user_id,
+                "label": "Work",
+                "address_type": "shipping",
+                "recipient_name": "Address Tester",
+                "phone_number": "+905554445566",
+                "address_line1": "Bestekar Sk. No: 2",
+                "address_line2": None,
+                "city": "Ankara",
+                "state": "Ankara",
+                "postal_code": "06000",
+                "country": "Turkey",
+                "delivery_instructions": None,
+                "is_default": True,
+                "is_active": True,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(second_create_response.status_code, 201)
+        second_address_id = second_create_response.json()["id"]
+
+        default_after_second_response = self.client.get(f"/user-addresses/users/{user_id}/default", headers=auth_headers)
+        self.assertEqual(default_after_second_response.status_code, 200)
+        self.assertEqual(default_after_second_response.json()["id"], second_address_id)
+
+        get_response = self.client.get(f"/user-addresses/{address_id}", headers=auth_headers)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.json()["city"], "Istanbul")
+        self.assertFalse(get_response.json()["is_default"])
+
+        update_response = self.client.put(
+            f"/user-addresses/{address_id}",
+            json={
+                "label": "Office",
+                "city": "Ankara",
+                "is_default": False,
+            },
+            headers=auth_headers,
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.json()["label"], "Office")
+        self.assertEqual(update_response.json()["city"], "Ankara")
+        self.assertFalse(update_response.json()["is_default"])
+
+        delete_response = self.client.delete(f"/user-addresses/{address_id}", headers=auth_headers)
+        self.assertEqual(delete_response.status_code, 204)
+
+        delete_second_response = self.client.delete(f"/user-addresses/{second_address_id}", headers=auth_headers)
+        self.assertEqual(delete_second_response.status_code, 204)
+
     def test_checkout_flow_and_inventory_update(self) -> None:
         register_response = self.client.post(
             "/register",

@@ -42,6 +42,7 @@ from app.schemas.order import (
 )
 from app.schemas.payment import UserPaymentMethodCreate, UserPaymentMethodRead, UserPaymentMethodUpdate
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.schemas.user_address import UserAddressCreate, UserAddressRead, UserAddressUpdate
 
 __all__ = [
     "LoginRequest",
@@ -58,6 +59,9 @@ __all__ = [
     "UserCreate",
     "UserRead",
     "UserUpdate",
+    "UserAddressCreate",
+    "UserAddressRead",
+    "UserAddressUpdate",
     "CartCreate",
     "CartRead",
     "CartUpdate",

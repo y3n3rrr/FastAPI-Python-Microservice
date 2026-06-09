@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.config import get_settings
 from app.db.base import Base, TimestampMixin
 from app.entities.payment import UserPaymentMethod
+from app.entities.user_address import UserAddress
 
 _SETTINGS = get_settings()
 _SCHEMA = None if _SETTINGS.database_url.startswith("sqlite") else _SETTINGS.database_schema
@@ -22,6 +23,12 @@ class User(TimestampMixin, Base):
 
     payment_methods: Mapped[list["UserPaymentMethod"]] = relationship(
         "UserPaymentMethod",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    addresses: Mapped[list["UserAddress"]] = relationship(
+        "UserAddress",
         back_populates="user",
         cascade="all, delete-orphan",
     )
